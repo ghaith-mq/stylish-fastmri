@@ -1,60 +1,62 @@
+import sys
+import pathlib as pb
+from typing import List, Dict
+
 import torch
 import torch.nn.functional as F
-
 import numpy as np
 import matplotlib.pyplot as plt
-
 from torch import nn
-from typing import List
 
+DIR_PATH = pb.Path(__file__).resolve().parent
+sys.path.append(str(DIR_PATH))
+import custom_layers
 
-
-# Pseudo code
-# ReconBlock can be a U-Net model considered in the previous demo
-class ReconBlock(nn.Module):
-    def __init__(self) -> None:
-        super(ReconBlock, self).__init__()
-        
-        self.downsample = []
-        self.upsample = []
-        
-    def forward(self, image: torch.Tensor) -> torch.Tensor:
-        return self.downsample(self.upsample(image))
 
 
 # Pseudo code, very complex in reality
-class IterativeModel(nn.Module):
-    def __init__(self, recon_blocks: List[nn.Module], data_consistency: nn.Module, num_iterations: int, 
-                 iterative_type: str = 'unrolled') -> None:
-        """ Class-constructor for the iterative reconstruction model.
+class FastMRIIterativeModel(nn.Module):
+    def __init__(
+        self
+        , block_kwargs_list: List[Dict]
+        , block_name: str='DataConsistedStylishUNet'
+        , iterative_type: str='unrolled'
+        , num_iterations: int=1
+    ) -> None:
+                
+        super().__init__()
         
-        Args:
-            recon_blocks: collection of recon blocks. Contains a single block in case of 'rolled' iterative type
-            data_consistency: mr-specific operation
-            num_iterations: number of iterations with a single block in case of 'rolled' iterative type
-            iterative_type: either 'rolled' or 'unrolled'
-        """
-        super(IterativeModel, self).__init__()
+        block_fn = getattr(custom_layers, block_name)
         
-        self.recon_blocks = recon_blocks
-        self.data_consistency = data_consistency
+        self.rec_blocks = nn.ModuleList([
+            block_fn(**kwargs)
+            for kwargs in block_kwargs_list
+        ])
+            
         self.iterative_type = iterative_type
         self.num_iterations = num_iterations
         
-    def __forward__(self, image: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self
+        , image: torch.Tensor
+        , known_freq: torch.Tensor
+        , mask: torch.Tensor
+        , texture: torch.Tensor=None
+        , noise: torch.Tensor=None
+    ) -> torch.Tensor:
+        
         # In case of unrolled reconstruction, sequentially apply reconstruction blocks.
         # Apply data consistency between recon blocks
         if self.iterative_type == 'unrolled':
-            for block in self.recon_blocks:
-                recon = block(image)
-                correction = self.data_consistency(recon)
-                image = recon - correction
+            for _ in range(self.num_iterations):
+                for block in self.rec_blocks:
+                    image = block(image, known_freq, mask, texture, noise)
                 
         # In case of unrolled reconstruction, apply the same recon block 'self.num_iterations' times.
         # Apply data consistency between recon blocks
         elif self.iterative_type == 'rolled':
-            block = self.recon_blocks[0]
+            block = self.rec_blocks[0]
             for _ in range(self.num_iterations):
-                recon = block(image)
-                correction = self.data_consistency(recon)
-                image = recon - correction
+                image = block(image, known_freq, mask, texture, noise)         
+
+        return image
