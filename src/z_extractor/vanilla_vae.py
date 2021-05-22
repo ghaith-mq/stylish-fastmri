@@ -37,23 +37,8 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
         raise ValueError('value error for `distribution` expected: {bernoulli, or gaussian}')
 
     return recon_loss
-
-def kl_divergence(mu, log_var):
-    batch_size = mu.shape[0]
-    assert batch_size != 0
-    if mu.data.ndimension() == 4:
-        mu = mu.view(mu.size(0), mu.size(1))
-
-    if log_var.data.ndimension() == 4:
-        log_var = log_var.view(log_var.size(0), log_var.size(1))
-
-    klds = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
-    total_kld = klds.sum(1).mean(0, True)
-    dimension_wise_kld = klds.mean(0)
-    mean_kld = klds.mean(1).mean(0, True)
-
-    return total_kld, dimension_wise_kld, mean_kld
   
+
 from abc import abstractmethod, ABCMeta
 from torch import nn
 import torch.nn.functional as F

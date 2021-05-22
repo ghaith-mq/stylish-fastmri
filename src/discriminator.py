@@ -76,4 +76,3 @@ class Discriminator(nn.Module):
         x = torch.cat([x, y], dim=1)
         x = self.first_layer(x)
         return self.layers(x)
-

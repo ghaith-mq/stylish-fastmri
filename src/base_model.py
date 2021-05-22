@@ -14,8 +14,7 @@ import custom_layers
 
 
 
-# Pseudo code, very complex in reality
-class FastMRIIterativeModel(nn.Module):
+class BaseStylishFastMRI(nn.Module):
     def __init__(
         self
         , block_kwargs_list: List[Dict]

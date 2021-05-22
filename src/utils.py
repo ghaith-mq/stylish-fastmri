@@ -1,5 +1,10 @@
+from collections import namedtuple
+
 import torch
 
+
+
+EntityKwargs = namedtuple('EntityKwargs', ['entity', 'kwargs'])
 
 
 def to_two_channel_complex(data: torch.Tensor) -> torch.Tensor:
