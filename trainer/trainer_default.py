@@ -18,6 +18,7 @@ import piq
 ROOT_PATH = pb.Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_PATH))
 import custom_nn.utils
+import custom_nn.custom_layers as custom_layers
 from custom_nn.utils import EntityKwargs
 import custom_nn.model as model_module
 import custom_nn.discriminator as discriminator_module
@@ -90,12 +91,10 @@ class FastMRIDefaultTrainer:
             model = model_module.StylishFastMRI(**kwargs)
         elif model == 'discriminator':
             model = discriminator_module.Discriminator(**kwargs)
-        elif model == 'mobilenet_v2':
-            model = torch.hub.load('pytorch/vision:v0.9.0', 'mobilenet_v2', **kwargs).features
-        elif model == 'vanialla_vae':
-            model = z_extractor.vanilla_vae.VanillaVAE(**kwargs)
-        elif model == 'wassersteinae':
-            model = z_extractor.wassersteinae.WassersteinAE(**kwargs)
+        elif model == 'mobilenet_v2_encoder':
+            model = custom_layers.MobileNetV2Encoder(**kwargs)
+        elif model == 'mobilenet_v2_vaencoder':
+            model = custom_layers.MobileNetV2VAEncoder(**kwargs)
         else: 
             raise NotImplementedError()
             
@@ -255,7 +254,10 @@ class FastMRIDefaultTrainer:
         return loss, cache
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
-        rec_image, _, _, _ = self.model(image, known_freq, mask)
+        b, _, h, w = image.shape
+        torch.random.seed(42)
+        noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
+        rec_image, _, _, _ = self.model(image, known_freq, mask, noise=noise)
         rec_image = rec_image.detach()
         
         cache = {}

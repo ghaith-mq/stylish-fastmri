@@ -73,6 +73,7 @@ class StylishUNet(nn.Module):
         , num_down_blocks=4
     
         , use_texture_injection=False
+        , texture_dim=320
         , use_noise_injection=False
     ):
 
@@ -131,8 +132,8 @@ class StylishUNet(nn.Module):
                 self.encoder_noise_applier_blocks.insert(0, NoiseApplier(in_channels))
                 self.decoder_noise_applier_blocks.insert(0, NoiseApplier(out_channels))
             if use_texture_injection:
-                self.encoder_adain_blocks.insert(0, AdaIN(in_channels))
-                self.decoder_adain_blocks.insert(0, AdaIN(out_channels))
+                self.encoder_adain_blocks.insert(0, AdaIN(texture_dim, in_channels))
+                self.decoder_adain_blocks.insert(0, AdaIN(texture_dim, out_channels))
 
         self.final_block = self._construct_block(
             min_channels
@@ -143,7 +144,7 @@ class StylishUNet(nn.Module):
         if use_noise_injection:
             self.decoder_noise_applier_blocks.append(NoiseApplier(min_channels))
         if use_texture_injection:
-            self.decoder_adain_blocks.append(AdaIN(min_channels))
+            self.decoder_adain_blocks.append(AdaIN(texture_dim, min_channels))
 
         self.conv_out = nn.Conv2d(min_channels, num_classes, kernel_size=1)
 
@@ -255,7 +256,7 @@ class DataConsistedStylishUNet(StylishUNet):
 
 
 class MappingNet(nn.Module):
-    def __init__(self, in_channels=512, out_channels=512, num_inter_layers=3):
+    def __init__(self, in_channels=320, out_channels=320, num_inter_layers=3):
         super().__init__()
         
         layers = [spectral_norm(nn.Linear(in_channels, out_channels))]
@@ -267,3 +268,70 @@ class MappingNet(nn.Module):
         
     def forward(self, x):
         return self.model(x)
+    
+
+class MobileNetV2VAEncoder(nn.Module):
+    
+    def __init__(self, out_channels=320):
+        super().__init__()
+        
+        self.features = torch.hub.load('pytorch/vision:v0.9.0', 'mobilenet_v2', pretrained=True).features  # 1280
+        self.dummy_compressor = nn.AvgPool1d(4)
+        
+        self.mu = nn.Linear(320, out_channels)
+        self.log_var = nn.Linear(320, out_channels)
+
+    def forward(self, x):
+        x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
+        feats = self.features(x)
+        feats = feats.reshape(-1, 1, 1280)
+        # Compress the features to make other parts lightweight
+        feats = self.dummy_compressor(feats)
+        feats = feats.reshape(-1, 320)
+        
+        mu = self.mu(feats)
+        log_var = self.log_var(feats)
+        
+        z = self.reparameterize(mu, log_var)
+        
+        return z, mu, log_var
+    
+    def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
+        """
+            Re-parameterization trick to sample from N(mu, var) from
+            N(0,1).
+            :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+            :param log_var: (Tensor) Standard deviation of the latent Gaussian [B x D]
+            :return: (Tensor) [B x D]
+        """
+        
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        
+        return eps * std + mu 
+    
+    
+class MobileNetV2Encoder(nn.Module):
+    
+    def __init__(self, out_channels=320, freeze=True):
+        super().__init__()
+        
+        self.features = torch.hub.load('pytorch/vision:v0.9.0', 'mobilenet_v2', pretrained=True).features  # 1280
+        if freeze:                
+            for param in self.features.parameters():
+                param.requires_grad = False
+        
+        self.dummy_compressor = nn.AvgPool1d(4)
+        self.final = nn.Identity() if out_channels == 320 else nn.Linear(320, out_channels)
+
+    def forward(self, x):
+        x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
+        feats = self.features(x)
+        feats = feats.reshape(-1, 1, 1280)
+        # Compress the features to make other parts lightweight
+        feats = self.dummy_compressor(feats)
+        feats = feats.reshape(-1, 320)
+        
+        out = self.final(feats)
+        
+        return out

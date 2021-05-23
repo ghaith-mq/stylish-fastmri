@@ -7,21 +7,20 @@ model__entity_kwargs:
   entity: stylishfastmri
   kwargs: {
     z_encoder_kwargs: {},
-    w_encoder_kwargs: { in_channels: 512, out_channels: 512, num_inter_layers: 3 }, 
+    w_encoder_kwargs: {}, 
     base_model_kwargs: { block_kwargs_list: [{
       num_classes: 1,
       min_channels: 32,
       max_channels: 512,
       num_down_blocks: 4,
       use_texture_injection: True,
+      texture_dim: 320,
       use_noise_injection: True
     }]}
   }
-
 model__optimizer_entity_kwargs:
   entity: 'adam'
   kwargs: {lr: 0.0002}
-
 model__scheduler_entity_kwargs: null
 # model__scheduler_entity_kwargs:
 #   entity: lambdalr
@@ -30,16 +29,14 @@ model__scheduler_entity_kwargs: null
 discriminator__entity_kwargs: 
   entity: discriminator
   kwargs: {in_channels: 1, inter_channels: [64, 128, 256, 512]}
-
 discriminator__optimizer_entity_kwargs:
   entity: 'adam'
   kwargs: {lr: 0.0002, betas: [0., 0.999]}
-
 discriminator__scheduler_entity_kwargs: null
 
 texture_proxy__entity_kwargs:
-  entity: mobilenet_v2
-  kwargs: {pretrained: True}
+  entity: mobilenet_v2_encoder
+  kwargs: {}
 
 criterion__entity2_kwargs_list: [
   { entity: ['rec', 'l1'], kwargs: {} },

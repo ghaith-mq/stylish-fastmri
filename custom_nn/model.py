@@ -16,7 +16,7 @@ class StylishFastMRI(base_model.BaseStylishFastMRI):
     def __init__(self, z_encoder_kwargs, w_encoder_kwargs, base_model_kwargs):
         super().__init__(**base_model_kwargs)
         
-        self.z_encoder = vanilla_vae.VanillaVAE(**z_encoder_kwargs)
+        self.z_encoder = custom_layers.MobileNetV2VAEncoder(**z_encoder_kwargs)
         self.w_encoder = custom_layers.MappingNet(**w_encoder_kwargs)
         
     def forward(self, image: torch.Tensor, known_freq: torch.Tensor, 
