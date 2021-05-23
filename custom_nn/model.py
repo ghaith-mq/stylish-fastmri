@@ -6,15 +6,15 @@ import torch.nn as nn
 
 DIR_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(DIR_PATH))
-import custom_layers, custom_ops, base_model
+import custom_layers, base_model
 from z_extractor import vanilla_vae, wassersteinae
 
 
 
 class StylishFastMRI(base_model.BaseStylishFastMRI):
     
-    def __init__(self, z_encoder_kwargs, w_encoder_kwargs, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, z_encoder_kwargs, w_encoder_kwargs, base_model_kwargs):
+        super().__init__(**base_model_kwargs)
         
         self.z_encoder = vanilla_vae.VanillaVAE(**z_encoder_kwargs)
         self.w_encoder = custom_layers.MappingNet(**w_encoder_kwargs)

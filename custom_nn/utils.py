@@ -3,7 +3,7 @@ from collections import namedtuple
 import torch
 
 
-
+        
 EntityKwargs = namedtuple('EntityKwargs', ['entity', 'kwargs'])
 
 
@@ -43,3 +43,20 @@ def kspace_to_image(kspace: torch.Tensor) -> torch.Tensor:
 
 def revert_mask(mask):
     return (mask - 1) * -1
+
+
+def soft_thresholding(u, lambd):
+    """https://arxiv.org/pdf/2004.07339.pdf
+
+    Args:
+        u: torch.Tensor
+        lambd: soft theshold
+    """
+    u_abs = u.abs()
+    return torch.maximum(u_abs - lambd, 0) * (u / u_abs)
+
+
+def data_consistency(rec_image, known_kspace, mask):
+    """https://arxiv.org/pdf/2004.07339.pdf"""
+    rec_kspace = complex_abs(to_two_channel_complex(image_to_kspace(rec_image)))
+    return kspace_to_image(mask * rec_kspace - mask * known_kspace)

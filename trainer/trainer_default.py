@@ -1,8 +1,8 @@
-from random import shuffle
 import sys
 import pathlib as pb
 import argparse as ap
 import typing as T
+import datetime
 
 import tqdm
 from loguru import logger
@@ -29,27 +29,36 @@ from fastmri.data import transforms, mri_data
 
 class FastMRIDefaultTrainer:
     
+    @staticmethod
+    def to_entity_kwargs(obj):
+        if isinstance(obj, EntityKwargs):
+            out = obj
+        else:
+            out = EntityKwargs(**obj)
+        return out
+    
     def __init__(
         self
         
         , dataset_path
         , batch_size
         
-        , model__entity_kwargs: EntityKwargs
-        , model__optimizer_entity_kwargs: EntityKwargs=None
-        , model__scheduler_entity_kwargs: EntityKwargs=None
+        , model__entity_kwargs: T.Union[EntityKwargs, T.Dict]
+        , model__optimizer_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
+        , model__scheduler_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
 
-        , discriminator__entity_kwargs: EntityKwargs=None
-        , discriminator__optimizer_entity_kwargs: EntityKwargs=None
-        , discriminator__scheduler_entity_kwargs: EntityKwargs=None
+        , discriminator__entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
+        , discriminator__optimizer_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
+        , discriminator__scheduler_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         
-        , texture_proxy__entity_kwargs: EntityKwargs=None
+        , texture_proxy__entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         
-        , criterion__entity2_kwargs_list: T.List[EntityKwargs]=None
+        , criterion__entity2_kwargs_list: T.List[T.Union[EntityKwargs, T.Dict]]=None
         
-        , writer__kwargs: T.Dict={}
+        , logs_dir: str='./logs'
     
         , device='cuda:0'
+        , **kwargs  # Dummy arguments
     ):
     
         self.device = torch.device(device)
@@ -58,19 +67,19 @@ class FastMRIDefaultTrainer:
         
         # Base model
         self.model = self.get_model(model__entity_kwargs).to(self.device)
-        self.model__optimizer_entity_kwargs = model__optimizer_entity_kwargs
-        self.model__scheduler_entity_kwargs = model__scheduler_entity_kwargs
+        self.model__optimizer_entity_kwargs = self.to_entity_kwargs(model__optimizer_entity_kwargs)
+        self.model__scheduler_entity_kwargs = self.to_entity_kwargs(model__scheduler_entity_kwargs)
         
         if discriminator__entity_kwargs is not None:
             self.discriminator = self.get_model(discriminator__entity_kwargs).to(self.device)
-            self.discriminator__optimizer_entity_kwargs = discriminator__optimizer_entity_kwargs
-            self.discriminator__scheduler_entity_kwargs = discriminator__scheduler_entity_kwargs
+            self.discriminator__optimizer_entity_kwargs = self.to_entity_kwargs(discriminator__optimizer_entity_kwargs)
+            self.discriminator__scheduler_entity_kwargs = self.to_entity_kwargs(discriminator__scheduler_entity_kwargs)
             
         if texture_proxy__entity_kwargs is not None:
             self.texture_proxy = self.get_model(texture_proxy__entity_kwargs).to(self.device)
             
-        self.criterion__entity2_kwargs_list = criterion__entity2_kwargs_list
-        self.writer__kwargs = writer__kwargs        
+        self.criterion__entity2_kwargs_list = self.to_entity_kwargs(criterion__entity2_kwargs_list)
+        self.logs_dir = logs_dir        
         
     def get_model(self, model_entity_kwargs: EntityKwargs) -> nn.Module:
         model = model_entity_kwargs.entity.lower()
@@ -109,7 +118,7 @@ class FastMRIDefaultTrainer:
             )
             masked_kspace = custom_nn.utils.complex_abs(masked_kspace)  # Merge real and complex channels
             
-            return image, mask, masked_kspace, target, mean, std
+            return image, mask, masked_kspace, target, mean, std, fname
         
         return data_transform
         
@@ -177,7 +186,8 @@ class FastMRIDefaultTrainer:
         kwargs = schdeduler_entity_kwargs.kwargs
         
         if entity == 'lambdalr':
-            scheduler = optim.lr_scheduler.LambdaLR(optimizer, **kwargs)
+            lambd = lambda epoch: kwargs['base'] ** epoch
+            scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambd)
         else:
             raise NotImplementedError()
         
@@ -209,7 +219,9 @@ class FastMRIDefaultTrainer:
         return criterion
     
     def get_writer(self):
-        writer = SummaryWriter(**self.writer__kwargs)
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        writer_path = str(pb.Path(self.logs_dir) / current_time)
+        writer = SummaryWriter(writer_path)
         return writer
             
     def _generator_train_step(self, image, known_freq, known_image, mask, criterion, **kwargs):
@@ -217,14 +229,19 @@ class FastMRIDefaultTrainer:
         gt_texture = self.texture_proxy(known_image)
         
         cache = {}
+        
+        loss_rec = criterion.rec(rec_image, known_image)
+        cache['loss_rec'] = loss_rec.item()
+        
         loss_kl = criterion.kl_normal(z_mu, z_log_var)
         cache['loss_kl'] = loss_kl.item()
         
         loss_texture = criterion.texture(texture, gt_texture)
         cache['loss_texture'] = loss_texture.item()
         
-        loss = loss_kl * criterion.kl_normal.coef_ + \
-            loss_texture * criterion.texture.coef_
+        loss = loss_kl * criterion.kl_normal.coef_ \
+            + loss_texture * criterion.texture.coef_ \
+            + loss_rec * criterion.rec.coef_
             
         if hasattr(criterion, 'adv'):
             fake_scores = self.discriminator(rec_image, image)
@@ -264,7 +281,7 @@ class FastMRIDefaultTrainer:
         
         for i, batch in pbar:
             image, known_freq, known_image, mask = batch
-            image, mask, known_freq, known_image, mean, std = batch
+            image, mask, known_freq, known_image, mean, std, fname = batch
             
             image = image.to(self.device)
             known_freq = known_freq.to(self.device)

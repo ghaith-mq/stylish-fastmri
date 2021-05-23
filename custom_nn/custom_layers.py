@@ -8,7 +8,7 @@ from torch.nn.utils import spectral_norm
 
 DIR_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(DIR_PATH))
-import custom_ops
+import utils
 
 
 
@@ -18,7 +18,7 @@ class SoftThresholding(nn.Module):
         self.lambd = nn.Parameter(torch.ones(1))
         
     def forward(self, u):
-        return custom_ops.soft_thresholding(u, self.lambd)
+        return utils.soft_thresholding(u, self.lambd)
 
 
 class SpectralConv2d(nn.Module):
@@ -249,7 +249,7 @@ class DataConsistedStylishUNet(StylishUNet):
         super().__init__(*args, **kwargs)
         
     def forward(self, x, known_freq, mask, textures=None, noise=None):
-        data_consistency = custom_ops.data_consistency(x, known_freq, mask)
+        data_consistency = utils.data_consistency(x, known_freq, mask)
         x = torch.cat([x, data_consistency], dim=1)
         return super().forward(x, textures, noise)
 

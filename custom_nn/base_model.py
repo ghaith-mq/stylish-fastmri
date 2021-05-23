@@ -1,6 +1,6 @@
 import sys
 import pathlib as pb
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import torch
 import torch.nn.functional as F
