@@ -1,3 +1,6 @@
+from random import shuffle
+import sys
+import pathlib as pb
 import argparse as ap
 import typing as T
 
@@ -11,23 +14,31 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 
-from utils import EntityKwargs
-import model as model_module
-import discriminator as discriminator_module
-import loss as loss_module
-import z_extractor
+ROOT_PATH = pb.Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_PATH))
+import custom_nn.utils
+from custom_nn.utils import EntityKwargs
+import custom_nn.model as model_module
+import custom_nn.discriminator as discriminator_module
+import custom_nn.loss as loss_module
+import custom_nn.z_extractor as z_extractor
+from fastmri.data import subsample
+from fastmri.data import transforms, mri_data
 
 
 
-class FastMRITrainer:
+class FastMRIDefaultTrainer:
     
     def __init__(
         self
         
+        , dataset_path
+        , batch_size
+        
         , model__entity_kwargs: EntityKwargs
         , model__optimizer_entity_kwargs: EntityKwargs=None
         , model__scheduler_entity_kwargs: EntityKwargs=None
-        
+
         , discriminator__entity_kwargs: EntityKwargs=None
         , discriminator__optimizer_entity_kwargs: EntityKwargs=None
         , discriminator__scheduler_entity_kwargs: EntityKwargs=None
@@ -42,6 +53,8 @@ class FastMRITrainer:
     ):
     
         self.device = torch.device(device)
+        self.dataset_path = dataset_path
+        self.batch_size = batch_size
         
         # Base model
         self.model = self.get_model(model__entity_kwargs).to(self.device)
@@ -73,19 +86,80 @@ class FastMRITrainer:
             model = z_extractor.vanilla_vae.VanillaVAE(**kwargs)
         elif model == 'wassersteinae':
             model = z_extractor.wassersteinae.WassersteinAE(**kwargs)
-        else:
+        else: 
             raise NotImplementedError()
             
         return model
+    
+    def get_fastmri_data_transform(self):
+        mask_func = subsample.RandomMaskFunc(
+            center_fractions=[0.08, 0.04, 0.02, 0.01],
+            accelerations=[4, 8, 16, 32]
+        )
+        unet_data_transform = transforms.UnetDataTransform(which_challenge="singlecoil", mask_func=mask_func)
+        
+        def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
+            image, mask, masked_kspace, target, mean, std, fname, slice_num, max_value = unet_data_transform(
+                kspace=kspace,
+                target=target,
+                mask=None,
+                attrs=data_attributes,
+                fname=filename,
+                slice_num=slice_num
+            )
+            masked_kspace = custom_nn.utils.complex_abs(masked_kspace)  # Merge real and complex channels
+            
+            return image, mask, masked_kspace, target, mean, std
+        
+        return data_transform
         
     def get_train_dataloader(self):
-        return ...
+        dataset = mri_data.SliceDataset(
+            root=pb.Path(self.dataset_path) / 'singlecoil_train',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            transform=self.get_fastmri_data_transform(),
+            challenge='singlecoil'
+        )
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            num_workers=2,
+            shuffle=True
+        )
+        
+        return dataloader
     
     def get_val_dataloader(self):
-        return ...
+        dataset = mri_data.SliceDataset(
+            root=pb.Path(self.dataset_path) / 'singlecoil_val',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            transform=self.get_fastmri_data_transform(),
+            challenge='singlecoil'
+        )
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            num_workers=2,
+            shuffle=False
+        )
+        
+        return dataloader
     
     def get_test_dataloader(self):
-        return ...
+        dataset = mri_data.SliceDataset(
+            root=pb.Path(self.dataset_path) / 'singlecoil_test',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            transform=self.get_fastmri_data_transform(),
+            challenge='singlecoil'
+        )
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            num_workers=2,
+            shuffle=False
+        )
+        
+        return dataloader
     
     def get_optimizer(self, model, optimizer_entity_kwargs):
         entity = optimizer_entity_kwargs.entity.lower()

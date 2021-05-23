@@ -85,7 +85,7 @@ class StylishUNet(nn.Module):
         self.min_side = 2 ** self.num_down_blocks
 
         # Initial feature extractor from RGB image
-        self.init_block = nn.Conv2d(3, min_channels, kernel_size=1)
+        self.init_block = nn.Conv2d(num_classes, min_channels, kernel_size=1)
 
         self.encoder_blocks = nn.ModuleList()
         self.encoder_down_blocks = nn.ModuleList()
@@ -252,3 +252,18 @@ class DataConsistedStylishUNet(StylishUNet):
         data_consistency = custom_ops.data_consistency(x, known_freq, mask)
         x = torch.cat([x, data_consistency], dim=1)
         return super().forward(x, textures, noise)
+
+
+class MappingNet(nn.Module):
+    def __init__(self, in_channels=512, out_channels=512, num_inter_layers=3):
+        super().__init__()
+        
+        layers = [spectral_norm(nn.Linear(in_channels, out_channels))]
+        for _ in range(num_inter_layers):
+            layers.append(nn.LeakyReLU())
+            layers.append(spectral_norm(nn.Linear(out_channels, out_channels)))
+            
+        self.model = nn.Sequential(*layers)
+        
+    def forward(self, x):
+        return self.model(x)
