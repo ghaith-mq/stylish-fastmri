@@ -22,9 +22,10 @@ model__optimizer_entity_kwargs:
   entity: 'adam'
   kwargs: {lr: 0.0002}
 
-model__scheduler_entity_kwargs:
-  entity: lambdalr
-  kwargs: {base: 0.96}
+model__scheduler_entity_kwargs: null
+# model__scheduler_entity_kwargs:
+#   entity: lambdalr
+#   kwargs: {base: 0.96}
 
 discriminator__entity_kwargs: 
   entity: discriminator

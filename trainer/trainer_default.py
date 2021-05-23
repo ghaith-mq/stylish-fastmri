@@ -13,6 +13,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
+import piq
 
 ROOT_PATH = pb.Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_PATH))
@@ -220,8 +221,8 @@ class FastMRIDefaultTrainer:
     
     def get_writer(self):
         current_time = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-        writer_path = str(pb.Path(self.logs_dir) / current_time)
-        writer = SummaryWriter(writer_path)
+        self.writer_path = str(pb.Path(self.logs_dir) / current_time)
+        writer = SummaryWriter(self.writer_path)
         return writer
             
     def _generator_train_step(self, image, known_freq, known_image, mask, criterion, **kwargs):
@@ -253,6 +254,21 @@ class FastMRIDefaultTrainer:
         
         return loss, cache
     
+    def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
+        rec_image, _, _, _ = self.model(image, known_freq, mask)
+        rec_image = rec_image.detach()
+        
+        cache = {}
+        
+        norm_rec_image = custom_nn.utils.to_zero_one(rec_image)
+        norm_known_image = custom_nn.utils.to_zero_one(known_image)
+        
+        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image)
+        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image)
+        cache['reconstruction'] = rec_image
+        
+        return None, cache
+    
     def _discriminator_train_step(self, image, known_image, cache, criterion, **kwargs):
         rec_image = cache['reconstruction']
         fake_scores = self.discriminator(rec_image, image)
@@ -272,12 +288,14 @@ class FastMRIDefaultTrainer:
         , optimizers=[None]
         , schedulers=[None]
         , log_prefix=''
+        , checkpoint=False
         , writer=None
     ):
         
         pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
         dataloader_length = len(dataloader)
-        loss_to_log = None
+        loss_to_log = {}
+        metric_to_log = {}
         
         for i, batch in pbar:
             image, known_freq, known_image, mask = batch
@@ -299,38 +317,65 @@ class FastMRIDefaultTrainer:
                     loss.backward()
                     optimizer.step()                
             
-            loss_atoms_to_log = {key: value for key, value in cache.items() if key.startswith('loss_')}
-            
             # Update global sum loss statistics
-            if loss_to_log is None:
+            loss_atoms_to_log = {key: value for key, value in cache.items() if key.startswith('loss_')}    
+            if len(loss_to_log) == 0:
                 loss_to_log = loss_atoms_to_log
             else:
                 for loss_key, loss_value in loss_atoms_to_log.items():
                     loss_to_log[loss_key] += loss_value
+                    
+            # Update global sum metric statistics
+            metric_atoms_to_log = {key: value for key, value in cache.items() if key.startswith('metric_')}
+            if len(metric_to_log) == 0:
+                metric_to_log = metric_atoms_to_log
+            else:
+                for metric_key, metric_value in metric_atoms_to_log.items():
+                    metric_to_log[metric_key] += metric_value
             
             # Update progres bar and writer
-            pbar.set_postfix(**loss_atoms_to_log)
+            pbar.set_postfix(**loss_atoms_to_log, **metric_atoms_to_log)
             if writer is not None:
                 for loss_key, loss_value in loss_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{loss_key}', loss_value, dataloader_length * epoch + i)
+                for metric_key, metric_value in metric_atoms_to_log.items():
+                    writer.add_scalar(f'{log_prefix}{metric_key}', metric_value, dataloader_length * epoch + i)
                     
         for scheduler in schedulers:
             if scheduler is not None:
                 scheduler.step()
-                    
-        final_loss_log_str = ', '.join([
-            f'{loss_key} = {loss_value / dataloader_length:.4f}'
-            for loss_key, loss_value in loss_to_log.items()
-        ])
-        logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}")
+        
+        if len(loss_to_log) > 0:     
+            final_loss_log_str = ', '.join([
+                f'{loss_key} = {loss_value / dataloader_length:.4f}'
+                for loss_key, loss_value in loss_to_log.items()
+            ])
+            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}")
+
+        if len(metric_to_log) > 0:     
+            final_metric_log_str = ', '.join([
+                f'{metric_key} = {metric_value / dataloader_length:.4f}'
+                for metric_key, metric_value in metric_to_log.items()
+            ])
+            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_metric_log_str}")
+        
         if writer is not None:
             for loss_key, loss_value in loss_to_log.items():
                 writer.add_scalar(f'{log_prefix}epoch_{loss_key}', loss_value / dataloader_length, epoch)
             if 'reconstruction' in cache.keys():
-                image = image[:2]
-                rec = cache['reconstruction'][:2]
+                image = image[:2] * std[:2] + mean[:2]
+                rec = cache['reconstruction'][:2] * std[:2] + mean[:2]
                 tensor_to_log = torchvision.utils.make_grid(torch.cat([image, rec]), nrow=2)
                 writer.add_image(f'{log_prefix}epoch_reconstruction', tensor_to_log, epoch)
+                
+        if checkpoint:
+            checkpoint_name = f'{epoch:03d}'
+            if 'metric_psnr' in metric_to_log.keys():
+                checkpoint_name += f"_{metric_to_log['metric_psnr'] / dataloader_length:.4f}"
+            if 'metric_ssim' in metric_to_log.keys():
+                checkpoint_name += f"_{metric_to_log['metric_ssim'] / dataloader_length:.4f}"
+            
+            torch.save(self.model.state_dict(), str(pb.Path(self.writer_path) / checkpoint_name))
     
     def train(self, epochs):
         train_dataloader = self.get_train_dataloader()
@@ -360,12 +405,12 @@ class FastMRIDefaultTrainer:
                      steps, 
                      optimizers,
                      schedulers,
-                     'train_', writer)
+                     'train_', checkpoint=True, writer=writer)
             
-            self.run(e, val_dataloader, criterion,
-                     steps[:1],
+            self.run(e, val_dataloader, None,
+                     self._generator_val_step,
                      [None],
                      [None],
-                     'val_', writer)
+                     'val_', checkpoint=False, writer=writer)
             
         logger.success('Training is complete!')

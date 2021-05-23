@@ -45,6 +45,12 @@ def revert_mask(mask):
     return (mask - 1) * -1
 
 
+def to_zero_one(tensor: torch.Tensor):
+    tensor = (tensor - tensor.min()) / (tensor.max() - tensor.min())
+    tensor = tensor.clamp(0, 1)
+    return tensor
+
+
 def soft_thresholding(u, lambd):
     """https://arxiv.org/pdf/2004.07339.pdf
 
