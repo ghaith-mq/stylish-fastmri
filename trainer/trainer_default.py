@@ -264,11 +264,14 @@ class FastMRIDefaultTrainer:
         
         for i, batch in pbar:
             image, known_freq, known_image, mask = batch
+            image, mask, known_freq, known_image, mean, std = batch
             
             image = image.to(self.device)
             known_freq = known_freq.to(self.device)
             known_image = known_image.to(self.device)
             mask = mask.to(self.device)
+            mean = mean.to(self.device)
+            std = std.to(self.device)
             
             cache = {}
             for step, optimizer in zip(steps, optimizers):
