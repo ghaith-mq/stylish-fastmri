@@ -314,7 +314,7 @@ class FastMRIDefaultTrainer:
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
         b, _, h, w = image.shape
-        torch.manual_seed(42)
+        torch.manual_seed(42)  # Maybe not the most elegan way, as it may lead to repetitive noise
         # noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
         rec_image, _, _, _ = self.model(image, known_freq, mask)
         rec_image = rec_image.detach()
@@ -324,8 +324,8 @@ class FastMRIDefaultTrainer:
         norm_rec_image = custom_nn.utils.to_zero_one(rec_image)
         norm_known_image = custom_nn.utils.to_zero_one(known_image)
         
-        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image).item()
-        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image).item()
+        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image, data_range=1.).item()
+        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image, data_range=1.).item()
         cache['reconstruction'] = rec_image
         
         return None, cache
@@ -358,7 +358,7 @@ class FastMRIDefaultTrainer:
         loss_to_log = {}
         metric_to_log = {}
         
-        logger.info(f'{dataloader_length} iterations to do...')
+        logger.info(f'\n{dataloader_length} iterations to do...')
         for i, batch in pbar:
             
             if i == 8: break
@@ -416,14 +416,14 @@ class FastMRIDefaultTrainer:
                 f'{loss_key} = {loss_value / dataloader_length:.4f}'
                 for loss_key, loss_value in loss_to_log.items()
             ])
-            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}")
+            logger.info(f"\n{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}")
 
         if len(metric_to_log) > 0:     
             final_metric_log_str = ', '.join([
                 f'{metric_key} = {metric_value / dataloader_length:.4f}'
                 for metric_key, metric_value in metric_to_log.items()
             ])
-            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_metric_log_str}")
+            logger.info(f"\n{log_prefix}epoch: {epoch:03d}: {final_metric_log_str}")
         
         if writer is not None:
             for loss_key, loss_value in loss_to_log.items():
