@@ -34,8 +34,10 @@ class FastMRIDefaultTrainer:
     def to_entity_kwargs(obj):
         if isinstance(obj, EntityKwargs):
             out = obj
-        else:
+        elif isinstance(obj, T.Dict):
             out = EntityKwargs(**obj)
+        else:
+            raise NotImplementedError()
         return out
     
     def __init__(
