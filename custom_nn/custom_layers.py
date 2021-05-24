@@ -206,9 +206,9 @@ class StylishUNet(nn.Module):
         
         x = self.conv_out(x)
         x = F.interpolate(x, size=(h, w), mode='bilinear')
-        logits = x
+        out = F.hardsigmoid(x)
         
-        return logits
+        return out
 
     def _construct_block(self, channels, in_channels=None, prepend_with_dropout=False):
         block_layers = [

@@ -121,7 +121,7 @@ class FastMRIDefaultTrainer:
         
         writer = self.get_writer()
             
-        logger.info('Init has complete. Training starts...')
+        logger.info('Init has complete. Training starts...\n')
         for e in range(epochs):
             self.run(e, train_dataloader, criterion,
                      steps, 
@@ -135,7 +135,7 @@ class FastMRIDefaultTrainer:
                      [None],
                      'val_', checkpoint=True, writer=writer)
             
-        logger.success('Training is complete!')
+        logger.success('Training is complete!\n')
         
     def get_model(self, model_entity_kwargs: EntityKwargs) -> nn.Module:
         model = model_entity_kwargs.entity.lower()
@@ -181,6 +181,7 @@ class FastMRIDefaultTrainer:
             use_dataset_cache=True,
             dataset_cache_file=self.train_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
+            sample_rate=0.2,
             challenge='singlecoil'
         )
 
@@ -199,6 +200,7 @@ class FastMRIDefaultTrainer:
             use_dataset_cache=True,
             dataset_cache_file=self.val_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
+            sample_rate=0.2,
             challenge='singlecoil'
         )
 
@@ -217,6 +219,7 @@ class FastMRIDefaultTrainer:
             use_dataset_cache=True,
             dataset_cache_file=self.test_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
+            sample_rate=0.2,
             challenge='singlecoil'
         )
 
@@ -280,7 +283,7 @@ class FastMRIDefaultTrainer:
     def get_writer(self):
         current_time = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
         self.writer_path = str(pb.Path(self.logs_dir) / current_time)
-        logger.info(f'Experiment logs dir: {self.writer_path}')
+        logger.info(f'Experiment logs dir: {self.writer_path}\n')
         writer = SummaryWriter(self.writer_path)
         return writer
             
@@ -322,11 +325,8 @@ class FastMRIDefaultTrainer:
         
         cache = {}
         
-        norm_rec_image = custom_nn.utils.to_zero_one(rec_image)
-        norm_known_image = custom_nn.utils.to_zero_one(known_image)
-        
-        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image, data_range=1.).item()
-        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image, data_range=1.).item()
+        cache['metric_ssim'] = piq.ssim(rec_image, known_image, data_range=1.).item()
+        cache['metric_psnr'] = piq.psnr(rec_image, known_image, data_range=1.).item()
         cache['reconstruction'] = rec_image
         
         return None, cache
@@ -359,7 +359,7 @@ class FastMRIDefaultTrainer:
         loss_to_log = {}
         metric_to_log = {}
         
-        logger.info(f'\n{dataloader_length} iterations to do...')
+        logger.info(f'{dataloader_length} iterations to do...\n')
         for i, batch in pbar:
             image, mask, known_freq, known_image, mean, std, fname = batch
             
@@ -417,14 +417,14 @@ class FastMRIDefaultTrainer:
                 f'{loss_key} = {loss_value / dataloader_length:.4f}'
                 for loss_key, loss_value in loss_to_log.items()
             ])
-            logger.info(f"\n{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}")
+            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_loss_log_str}\n")
 
         if len(metric_to_log) > 0:     
             final_metric_log_str = ', '.join([
                 f'{metric_key} = {metric_value / dataloader_length:.4f}'
                 for metric_key, metric_value in metric_to_log.items()
             ])
-            logger.info(f"\n{log_prefix}epoch: {epoch:03d}: {final_metric_log_str}")
+            logger.info(f"{log_prefix}epoch: {epoch:03d}: {final_metric_log_str}\n")
         
         if writer is not None:
             for loss_key, loss_value in loss_to_log.items():
