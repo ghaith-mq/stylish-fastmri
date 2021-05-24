@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import spectral_norm
 
+from loguru import logger
+
 DIR_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(DIR_PATH))
 import utils
@@ -60,6 +62,8 @@ class NoiseApplier(nn.Module):
         if noise is None:
             # Explicit noise in the argument is needed for proper validation
             noise = torch.randn((b, 1, h, w), dtype=dtype, device=device)
+            
+        logger.debug(f'{x.shape}, {noise.shape}, {self.scale.shape}')
         
         return x + self.scale.view(1, -1, 1, 1) * noise
         
