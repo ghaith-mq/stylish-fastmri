@@ -4,7 +4,7 @@ import argparse as ap
 import typing as T
 import datetime
 
-import tqdm.notebook as tqdm
+import tqdm
 from loguru import logger
 
 import torch
