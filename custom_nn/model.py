@@ -31,8 +31,8 @@ class StylishFastMRI(base_model.BaseStylishFastMRI):
         out = super().forward(image, known_freq, mask, texture=texture, noise=noise)
         
         logger.debug(f'{out.min()} - {out.max()}, {out.min()} - {out.max()}')
-        logger.debug(f'{z.min()} - {z.max()}, {z.min()} - {z.max()}')
-        logger.debug(f'{texture.min()} - {texture.max()}, {texture.min()} - {texture.max()}')
+        # logger.debug(f'{z.min()} - {z.max()}, {z.min()} - {z.max()}')
+        # logger.debug(f'{texture.min()} - {texture.max()}, {texture.min()} - {texture.max()}')
         
         
         return out, z_mu, z_log_var, texture
