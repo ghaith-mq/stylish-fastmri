@@ -13,6 +13,13 @@ import torch
 from .subsample import MaskFunc
 
 
+
+def complex_abs(data: torch.Tensor, keepdim: bool = False) -> torch.Tensor:
+    """ Convert complex image to a magnitude image (projection from complex to a real plane) """
+    assert data.size(-1) == 2
+    return (data ** 2).sum(dim=-1, keepdim=keepdim).sqrt()
+
+
 def to_tensor(data: np.ndarray) -> torch.Tensor:
     """
     Convert numpy array to PyTorch tensor.
@@ -277,6 +284,9 @@ class UnetDataTransform:
             crop_size = (image.shape[-2], image.shape[-2])
 
         image = complex_center_crop(image, crop_size)
+        
+        mask = complex_abs(complex_center_crop(mask.expand(1, mask.shape[1], mask.shape[1]), crop_size))
+        masked_kspace = complex_abs(complex_center_crop(masked_kspace, crop_size))
 
         # absolute value
         image = fastmri.complex_abs(image)

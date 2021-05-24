@@ -157,12 +157,11 @@ class FastMRIDefaultTrainer:
             image, mask, masked_kspace, target, mean, std, fname, slice_num, max_value = unet_data_transform(
                 kspace=kspace,
                 target=target,
-                mask=None,
+                mask=mask,
                 attrs=data_attributes,
                 fname=filename,
                 slice_num=slice_num
             )
-            masked_kspace = custom_nn.utils.complex_abs(masked_kspace)  # Merge real and complex channels
             
             return image, mask, masked_kspace, target, mean, std, fname
         
@@ -170,7 +169,8 @@ class FastMRIDefaultTrainer:
         
     def get_train_dataloader(self):
         dataset = mri_data.SliceDataset(
-            root=pb.Path(self.dataset_path) / 'singlecoil_train',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            root=pb.Path(self.dataset_path) / 'singlecoil_train',
+            use_dataset_cache=True,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
@@ -186,7 +186,8 @@ class FastMRIDefaultTrainer:
     
     def get_val_dataloader(self):
         dataset = mri_data.SliceDataset(
-            root=pb.Path(self.dataset_path) / 'singlecoil_val',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            root=pb.Path(self.dataset_path) / 'singlecoil_val',
+            use_dataset_cache=True,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
@@ -202,7 +203,8 @@ class FastMRIDefaultTrainer:
     
     def get_test_dataloader(self):
         dataset = mri_data.SliceDataset(
-            root=pb.Path(self.dataset_path) / 'singlecoil_test',  # pb.Path('/private/home/mmuckley/data/fastmri_knee/singlecoil_train'),
+            root=pb.Path(self.dataset_path) / 'singlecoil_test',
+            use_dataset_cache=True,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
