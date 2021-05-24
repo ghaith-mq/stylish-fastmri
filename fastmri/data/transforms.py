@@ -272,7 +272,6 @@ class UnetDataTransform:
 
         # inverse Fourier transform to get zero filled solution
         image = fastmri.ifft2c(masked_kspace)
-        image = image.unsqueeze(1)  # add color channel
 
         # crop input to correct size
         if target is not None:
@@ -287,8 +286,7 @@ class UnetDataTransform:
         image = complex_center_crop(image, crop_size)
         
         mask = center_crop(mask.expand(1, mask.shape[1], mask.shape[1]), crop_size)
-        masked_kspace = complex_abs(complex_center_crop(masked_kspace, crop_size))
-        masked_kspace = masked_kspace.unsqueeze(1)
+        masked_kspace = fastmri.complex_abs(complex_center_crop(masked_kspace, crop_size)).unsqueeze(1)
 
         # absolute value
         image = fastmri.complex_abs(image)
@@ -298,15 +296,16 @@ class UnetDataTransform:
             image = fastmri.rss(image)
 
         # normalize input
-        image, mean, std = normalize_instance(image, eps=1e-11)
+        image = image.unsqueeze(1)
+        image, mean, std = normalize_instance(image.unsqueeze(1), eps=1e-11)
         image = image.clamp(-6, 6)
 
         # normalize target
         if target is not None:
             target = to_tensor(target)
             target = center_crop(target, crop_size)
-            target = target.unsqueeze(1)
             target = normalize(target, mean, std, eps=1e-11)
+            target = target.unsqueeze(1)
             target = target.clamp(-6, 6)
         else:
             target = torch.Tensor([0])
