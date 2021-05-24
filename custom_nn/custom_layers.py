@@ -46,6 +46,9 @@ class AdaIN(nn.Module):
         gamma = self.gamma(y)
         x = (x - x.mean(dim=(1, 2, 3), keepdim=True)) \
             * torch.rsqrt(x.std(dim=(1, 2, 3), keepdim=True) + 1e-5)
+            
+        logger.debug(f'{x.shape}, {gamma.shape}, {beta.shape}')
+            
         return x * gamma[:, :, None, None] + beta[:, :, None, None]
     
     
