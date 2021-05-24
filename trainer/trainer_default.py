@@ -67,17 +67,17 @@ class FastMRIDefaultTrainer:
         self.batch_size = batch_size
         
         # Base model
-        self.model = self.get_model(model__entity_kwargs).to(self.device)
+        self.model = self.get_model(self.to_entity_kwargs(model__entity_kwargs)).to(self.device)
         self.model__optimizer_entity_kwargs = self.to_entity_kwargs(model__optimizer_entity_kwargs)
         self.model__scheduler_entity_kwargs = self.to_entity_kwargs(model__scheduler_entity_kwargs)
         
         if discriminator__entity_kwargs is not None:
-            self.discriminator = self.get_model(discriminator__entity_kwargs).to(self.device)
+            self.discriminator = self.get_model(self.to_entity_kwargs(discriminator__entity_kwargs)).to(self.device)
             self.discriminator__optimizer_entity_kwargs = self.to_entity_kwargs(discriminator__optimizer_entity_kwargs)
             self.discriminator__scheduler_entity_kwargs = self.to_entity_kwargs(discriminator__scheduler_entity_kwargs)
             
         if texture_proxy__entity_kwargs is not None:
-            self.texture_proxy = self.get_model(texture_proxy__entity_kwargs).to(self.device)
+            self.texture_proxy = self.get_model(self.to_entity_kwargs(texture_proxy__entity_kwargs)).to(self.device)
             
         self.criterion__entity2_kwargs_list = self.to_entity_kwargs(criterion__entity2_kwargs_list)
         self.logs_dir = logs_dir        
