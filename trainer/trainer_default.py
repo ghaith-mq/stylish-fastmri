@@ -353,7 +353,7 @@ class FastMRIDefaultTrainer:
         , writer=None
     ):
         
-        pbar = tqdm.tqdm(enumerate(dataloader), leave=True, desc=f'Epoch: {epoch}')
+        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
         dataloader_length = len(dataloader)
         loss_to_log = {}
         metric_to_log = {}
@@ -397,13 +397,16 @@ class FastMRIDefaultTrainer:
                     metric_to_log[metric_key] += metric_value
             
             # Update progres bar and writer
-            pbar.set_postfix(**{**loss_atoms_to_log, **metric_atoms_to_log})
+            pbar.set_postfix(**loss_atoms_to_log, **metric_atoms_to_log)
             if writer is not None:
                 for loss_key, loss_value in loss_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{loss_key}', loss_value, dataloader_length * epoch + i)
                 for metric_key, metric_value in metric_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{metric_key}', metric_value, dataloader_length * epoch + i)
                     
+                    
+        pbar.close()
+        
         for scheduler in schedulers:
             if scheduler is not None:
                 scheduler.step()
