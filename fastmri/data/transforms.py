@@ -204,6 +204,14 @@ def normalize_instance(
     return normalize(data, mean, std, eps), mean, std
 
 
+def normalize_to_zero_one(tensor: torch.Tensor, eps: Union[float, torch.Tensor] = 0.0):
+    mean = tensor.min()
+    std = tensor.max() - tensor.min()
+    tensor = (tensor - mean) / (std + eps)
+    tensor = tensor.clamp(0, 1)
+    return tensor, mean, std
+
+
 class UnetDataTransform:
     """
     Data Transformer for training U-Net models.
@@ -297,8 +305,9 @@ class UnetDataTransform:
 
         # normalize input
         image = image.unsqueeze(0)
-        image, mean, std = normalize_instance(image, eps=1e-11)
-        image = image.clamp(-6, 6)
+        # image, mean, std = normalize_instance(image, eps=1e-11)
+        image, mean, std = normalize_to_zero_one(image, eps=1e-11)
+        # image = image.clamp(-6, 6)
 
         # normalize target
         if target is not None:
