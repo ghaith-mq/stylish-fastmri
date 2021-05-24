@@ -130,7 +130,7 @@ class FastMRIDefaultTrainer:
                      'train_', checkpoint=True, writer=writer)
             
             self.run(e, val_dataloader, None,
-                     self._generator_val_step,
+                     [self._generator_val_step],
                      [None],
                      [None],
                      'val_', checkpoint=False, writer=writer)
