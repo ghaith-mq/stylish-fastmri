@@ -51,7 +51,7 @@ class NoiseApplier(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.scale = nn.Parameter(torch.empty(channels), requires_grad=True)
-        torch.nn.init.xavier_normal_(self.scale.data)
+        torch.nn.init.normal_(self.scale.data)
 
     def forward(self, x, noise=None):
         b, _, h, w = x.shape
