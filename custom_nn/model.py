@@ -4,6 +4,8 @@ import pathlib as pb
 import torch
 import torch.nn as nn
 
+from loguru import logger
+
 DIR_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(DIR_PATH))
 import custom_layers, base_model
@@ -25,6 +27,8 @@ class StylishFastMRI(base_model.BaseStylishFastMRI):
         if texture is None:
             z, z_mu, z_log_var = self.z_encoder(image)
             texture = self.w_encoder(z)
+            
+        logger.debug(f'Z, Texture shape: {z.shape}, {texture.shape}')
         
         out = super().forward(image, known_freq, mask, texture=texture, noise=noise)
         
