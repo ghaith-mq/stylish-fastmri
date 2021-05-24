@@ -4,7 +4,7 @@ import argparse as ap
 import typing as T
 import datetime
 
-import tqdm
+import tqdm.notebook as tqdm
 from loguru import logger
 
 import torch
@@ -353,7 +353,7 @@ class FastMRIDefaultTrainer:
         , writer=None
     ):
         
-        pbar = tqdm.notebook.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
+        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
         dataloader_length = len(dataloader)
         loss_to_log = {}
         metric_to_log = {}
