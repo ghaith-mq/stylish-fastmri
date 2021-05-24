@@ -37,6 +37,7 @@ class FastMRIDefaultTrainer:
         elif isinstance(obj, T.Dict):
             out = EntityKwargs(**obj)
         else:
+            logger.debug(str(obj))
             raise NotImplementedError()
         return out
     
