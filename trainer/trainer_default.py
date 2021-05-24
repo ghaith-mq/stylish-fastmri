@@ -350,6 +350,8 @@ class FastMRIDefaultTrainer:
         for i, batch in pbar:
             image, mask, known_freq, known_image, mean, std, fname = batch
             
+            logger.debug(f'{image.shape}, {mask.shape}, {known_freq.shape}, {known_image.shape}, {mean.shape}, {std.shape}')
+            
             image = image.to(self.device)
             known_freq = known_freq.to(self.device)
             known_image = known_image.to(self.device)
