@@ -1,6 +1,8 @@
 import sys
 import pathlib as pb
 
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -62,7 +64,7 @@ class NoiseApplier(nn.Module):
         
         if is_deterministic:
             # Explicit noise in the argument is needed for proper validation
-            noise = torch.full((b, 1, h, w), 0.5, dtype=dtype, device=device)
+            noise = torch.as_tensor(np.random.RandomState(seed=0).randn(b, 1, h, w), dtype=dtype, device=device)
         else:
             noise = torch.randn((b, 1, h, w), dtype=dtype, device=device)
         
@@ -312,7 +314,7 @@ class MobileNetV2VAEncoder(nn.Module):
         std = torch.exp(0.5 * log_var)
         
         if is_deterministic:
-            eps = torch.full_like(std, .5)
+            eps = torch.as_tensor(np.random.RandomState(seed=0).randn(*std.shape), dtype=std.dtype, device=std.device)
         else:
             eps = torch.randn_like(std)
 
