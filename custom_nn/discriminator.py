@@ -71,8 +71,11 @@ class Discriminator(nn.Module):
                                 ))
 
         self.layers = nn.Sequential(*layers)
+        self.pool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, x, y):
         x = torch.cat([x, y], dim=1)
         x = self.first_layer(x)
-        return self.layers(x)
+        x = self.layers(x)
+        x = self.pool(x).reshape(-1)
+        return x
