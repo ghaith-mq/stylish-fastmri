@@ -289,7 +289,6 @@ class FastMRIDefaultTrainer:
         
         cache = {}
         
-        logger.debug(f'{rec_image.min()} - {rec_image.max()}, {known_image.min()} - {known_image.max()}')
         loss_rec = criterion.rec(rec_image, known_image)
         cache['loss_rec'] = loss_rec.item()
         
