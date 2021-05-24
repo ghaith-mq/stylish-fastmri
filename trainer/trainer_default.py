@@ -30,12 +30,16 @@ from fastmri.data import transforms, mri_data
 
 class FastMRIDefaultTrainer:
     
-    @staticmethod
-    def to_entity_kwargs(obj):
+    @classmethod
+    def to_entity_kwargs(cls, obj):
         if isinstance(obj, EntityKwargs):
             out = obj
         elif isinstance(obj, T.Dict):
             out = EntityKwargs(**obj)
+        elif isinstance(obj, T.List):
+            out = []
+            for o in obj:
+                out.append(cls.to_entity_kwargs(o))
         elif obj is None:
             out = None
         else:
