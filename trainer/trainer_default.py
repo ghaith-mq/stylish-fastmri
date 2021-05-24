@@ -127,13 +127,13 @@ class FastMRIDefaultTrainer:
                      steps, 
                      optimizers,
                      schedulers,
-                     'train_', checkpoint=True, writer=writer)
+                     'train_', checkpoint=False, writer=writer)
             
             self.run(e, val_dataloader, None,
                      [self._generator_val_step],
                      [None],
                      [None],
-                     'val_', checkpoint=False, writer=writer)
+                     'val_', checkpoint=True, writer=writer)
             
         logger.success('Training is complete!')
         
@@ -315,9 +315,9 @@ class FastMRIDefaultTrainer:
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
         b, _, h, w = image.shape
-        torch.manual_seed(42)  # Maybe not the most elegan way, as it may lead to repetitive noise
+        # torch.manual_seed(42)  # Maybe not the most elegan way, as it may lead to repetitive noise
         # noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
-        rec_image, _, _, _ = self.model(image, known_freq, mask)
+        rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
         rec_image = rec_image.detach()
         
         cache = {}
@@ -434,7 +434,9 @@ class FastMRIDefaultTrainer:
                 image = image[:2]
                 # rec = cache['reconstruction'][:2] * std[:2, None, None, None] + mean[:2, None, None, None]
                 rec = cache['reconstruction'][:2]
-                tensor_to_log = torchvision.utils.make_grid(torch.cat([image, rec]), nrow=2)
+                known_image = known_image[:2]
+                
+                tensor_to_log = torchvision.utils.make_grid(torch.cat([image, rec, known_image]), nrow=2)
                 writer.add_image(f'{log_prefix}epoch_reconstruction', tensor_to_log, epoch)
                 
         if checkpoint:

@@ -56,12 +56,14 @@ class NoiseApplier(nn.Module):
         self.scale = nn.Parameter(torch.empty(channels), requires_grad=True)
         torch.nn.init.normal_(self.scale.data)
 
-    def forward(self, x, noise=None):
+    def forward(self, x, is_deterministic=False):
         b, _, h, w = x.shape
         dtype, device = x.dtype, x.device
         
-        if noise is None:
+        if is_deterministic:
             # Explicit noise in the argument is needed for proper validation
+            noise = torch.full((b, 1, h, w), 0.5, dtype=dtype, device=device)
+        else:
             noise = torch.randn((b, 1, h, w), dtype=dtype, device=device)
         
         return x + self.scale.view(1, -1, 1, 1) * noise
@@ -151,7 +153,7 @@ class StylishUNet(nn.Module):
 
         self.conv_out = nn.Conv2d(min_channels, num_classes // 2, kernel_size=1)
 
-    def forward(self, inputs, textures=None, noise=None):
+    def forward(self, inputs, textures=None, is_deterministic=False):
         *_, h, w = inputs.shape
         valid_h = self._find_closest_to(h, divisible_by=self.min_side)
         valid_w = self._find_closest_to(w, divisible_by=self.min_side)
@@ -164,7 +166,7 @@ class StylishUNet(nn.Module):
             x = e(x)
             
             if hasattr(self, 'encoder_noise_applier_blocks'):
-                x = self.encoder_noise_applier_blocks[i](x, noise)
+                x = self.encoder_noise_applier_blocks[i](x, is_deterministic=is_deterministic)
             if hasattr(self, 'encoder_adain_blocks'):
                 x = self.encoder_adain_blocks[i](x, textures)
                 
@@ -183,7 +185,7 @@ class StylishUNet(nn.Module):
                 x = d(x)
                 
             if hasattr(self, 'decoder_noise_applier_blocks'):
-                x = self.decoder_noise_applier_blocks[i](x, noise)
+                x = self.decoder_noise_applier_blocks[i](x, is_deterministic=is_deterministic)
             if hasattr(self, 'decoder_adain_blocks'):
                 x = self.decoder_adain_blocks[i](x, textures)
             
@@ -196,7 +198,7 @@ class StylishUNet(nn.Module):
         x = self.final_block(x)
         
         if hasattr(self, 'decoder_noise_applier_blocks'):
-            x = self.decoder_noise_applier_blocks[-1](x, noise)
+            x = self.decoder_noise_applier_blocks[-1](x, is_deterministic=is_deterministic)
         if hasattr(self, 'decoder_adain_blocks'):
             x = self.decoder_adain_blocks[-1](x, textures)
         
@@ -250,10 +252,10 @@ class DataConsistedStylishUNet(StylishUNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def forward(self, x, known_freq, mask, textures=None, noise=None):
+    def forward(self, x, known_freq, mask, textures=None, is_deterministic=False):
         data_consistency = utils.data_consistency(x, known_freq, mask)
         x = torch.cat([x, data_consistency], dim=1)
-        return super().forward(x, textures, noise)
+        return super().forward(x, textures, is_deterministic=is_deterministic)
 
 
 class MappingNet(nn.Module):
@@ -283,7 +285,7 @@ class MobileNetV2VAEncoder(nn.Module):
         self.mu = spectral_norm(nn.Linear(320, out_channels))
         self.log_var = spectral_norm(nn.Linear(320, out_channels))
 
-    def forward(self, x):
+    def forward(self, x, is_deterministic=False):
         x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
         feats = self.features(x)
         feats = self.features_spatial_squeezer(feats).reshape(-1, 1, 1280)
@@ -294,11 +296,11 @@ class MobileNetV2VAEncoder(nn.Module):
         mu = self.mu(feats)
         log_var = self.log_var(feats)
         
-        z = self.reparameterize(mu, log_var)
+        z = self.reparameterize(mu, log_var, is_deterministic=is_deterministic)
         
         return z, mu, log_var
     
-    def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
+    def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor, is_deterministic: bool=False) -> torch.Tensor:
         """
             Re-parameterization trick to sample from N(mu, var) from
             N(0,1).
@@ -308,8 +310,12 @@ class MobileNetV2VAEncoder(nn.Module):
         """
         
         std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
         
+        if is_deterministic:
+            eps = torch.full_like(std, .5)
+        else:
+            eps = torch.randn_like(std)
+
         return eps * std + mu 
     
     

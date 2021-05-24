@@ -59,7 +59,7 @@ def soft_thresholding(u, lambd):
         lambd: soft theshold
     """
     u_abs = u.abs()
-    return torch.maximum(u_abs - lambd, torch.zeros_like(u_abs)) * (u / (u_abs + 1e-5))
+    return torch.maximum(u_abs - lambd, torch.zeros_like(u_abs)) * (u / (u_abs + 1e-6))
 
 
 def data_consistency(rec_image, known_kspace, mask):
