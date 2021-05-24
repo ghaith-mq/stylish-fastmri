@@ -397,7 +397,7 @@ class FastMRIDefaultTrainer:
                     metric_to_log[metric_key] += metric_value
             
             # Update progres bar and writer
-            pbar.set_postfix(**loss_atoms_to_log, **metric_atoms_to_log)
+            pbar.set_postfix(**{**loss_atoms_to_log, **metric_atoms_to_log})
             if writer is not None:
                 for loss_key, loss_value in loss_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{loss_key}', loss_value, dataloader_length * epoch + i)
