@@ -287,6 +287,8 @@ class FastMRIDefaultTrainer:
         rec_image, z_mu, z_log_var, texture = self.model(image, known_freq, mask)
         gt_texture = self.texture_proxy(known_image)
         
+        logger.debug(f'{known_freq.min()} -> {known_freq.max()}')
+        
         cache = {}
         
         loss_rec = criterion.rec(rec_image, known_image)

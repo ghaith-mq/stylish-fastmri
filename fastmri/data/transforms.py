@@ -315,7 +315,7 @@ class UnetDataTransform:
             target = center_crop(target, crop_size)
             target = normalize(target, mean, std, eps=1e-11)
             target = target.unsqueeze(0)
-            target = target.clamp(-6, 6)
+            # target = target.clamp(-6, 6)
         else:
             target = torch.Tensor([0])
 

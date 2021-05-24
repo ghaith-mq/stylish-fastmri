@@ -252,7 +252,6 @@ class DataConsistedStylishUNet(StylishUNet):
         
     def forward(self, x, known_freq, mask, textures=None, noise=None):
         data_consistency = utils.data_consistency(x, known_freq, mask)
-        # logger.debug(f'Data consistency: {data_consistency.min()} -> {data_consistency.max()}')
         x = torch.cat([x, data_consistency], dim=1)
         return super().forward(x, textures, noise)
 

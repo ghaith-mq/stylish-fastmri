@@ -45,5 +45,5 @@ criterion__entity2_kwargs_list: [
   { entity: ['rec', 'l1'], kwargs: {} },
   { entity: ['kl_normal', 'kl_normal'], kwargs: { coef: 0.01 } },
   { entity: ['texture', 'l1'], kwargs: {} },
-  { entity: ['adv', 'non_saturating_gan'], kwargs: { coef: 0.001 } },
+  { entity: ['adv', 'non_saturating_gan'], kwargs: { coef: 0.01 } },
 ]
