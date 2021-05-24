@@ -285,7 +285,7 @@ class UnetDataTransform:
 
         image = complex_center_crop(image, crop_size)
         
-        mask = complex_abs(complex_center_crop(mask.expand(1, mask.shape[1], mask.shape[1]), crop_size))
+        mask = center_crop(mask.expand(1, mask.shape[1], mask.shape[1]), crop_size)
         masked_kspace = complex_abs(complex_center_crop(masked_kspace, crop_size))
 
         # absolute value
