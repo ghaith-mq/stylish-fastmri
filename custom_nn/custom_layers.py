@@ -47,9 +47,6 @@ class AdaIN(nn.Module):
         x = (x - x.mean(dim=(1, 2, 3), keepdim=True)) \
             * torch.rsqrt(x.std(dim=(1, 2, 3), keepdim=True) + 1e-5)
             
-        # torch.Size([32, 32, 320, 320]), torch.Size([3200, 32]), torch.Size([3200, 32])
-        logger.debug(f'{x.shape}, {y.shape}, {gamma.shape}, {beta.shape}')
-            
         return x * gamma[:, :, None, None] + beta[:, :, None, None]
     
     
@@ -66,8 +63,6 @@ class NoiseApplier(nn.Module):
         if noise is None:
             # Explicit noise in the argument is needed for proper validation
             noise = torch.randn((b, 1, h, w), dtype=dtype, device=device)
-            
-        # logger.debug(f'{x.shape}, {noise.shape}, {self.scale.shape}')
         
         return x + self.scale.view(1, -1, 1, 1) * noise
         
