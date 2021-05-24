@@ -41,7 +41,7 @@ class BaseStylishFastMRI(nn.Module):
         , known_freq: torch.Tensor
         , mask: torch.Tensor
         , texture: torch.Tensor=None
-        , noise: torch.Tensor=None
+        , is_deterministic: bool=False
     ) -> torch.Tensor:
         
         # In case of unrolled reconstruction, sequentially apply reconstruction blocks.
@@ -49,13 +49,13 @@ class BaseStylishFastMRI(nn.Module):
         if self.iterative_type == 'unrolled':
             for _ in range(self.num_iterations):
                 for block in self.rec_blocks:
-                    image = block(image, known_freq, mask, texture, noise)
+                    image = block(image, known_freq, mask, texture, is_deterministic=is_deterministic)
                 
         # In case of unrolled reconstruction, apply the same recon block 'self.num_iterations' times.
         # Apply data consistency between recon blocks
         elif self.iterative_type == 'rolled':
             block = self.rec_blocks[0]
             for _ in range(self.num_iterations):
-                image = block(image, known_freq, mask, texture, noise)         
+                image = block(image, known_freq, mask, texture, is_deterministic=is_deterministic)
 
         return image
