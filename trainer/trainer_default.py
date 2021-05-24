@@ -23,7 +23,6 @@ from custom_nn.utils import EntityKwargs
 import custom_nn.model as model_module
 import custom_nn.discriminator as discriminator_module
 import custom_nn.loss as loss_module
-import custom_nn.z_extractor as z_extractor
 from fastmri.data import subsample
 from fastmri.data import transforms, mri_data
 

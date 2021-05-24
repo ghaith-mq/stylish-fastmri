@@ -7,7 +7,7 @@ import torch.nn as nn
 DIR_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(DIR_PATH))
 import custom_layers, base_model
-from z_extractor import vanilla_vae, wassersteinae
+# from z_extractor import vanilla_vae, wassersteinae
 
 
 
