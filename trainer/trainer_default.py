@@ -324,8 +324,8 @@ class FastMRIDefaultTrainer:
         norm_rec_image = custom_nn.utils.to_zero_one(rec_image)
         norm_known_image = custom_nn.utils.to_zero_one(known_image)
         
-        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image)
-        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image)
+        cache['metric_ssim'] = piq.ssim(norm_rec_image, norm_known_image).item()
+        cache['metric_psnr'] = piq.psnr(norm_rec_image, norm_known_image).item()
         cache['reconstruction'] = rec_image
         
         return None, cache
@@ -353,7 +353,7 @@ class FastMRIDefaultTrainer:
         , writer=None
     ):
         
-        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
+        pbar = tqdm.notebook.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
         dataloader_length = len(dataloader)
         loss_to_log = {}
         metric_to_log = {}
