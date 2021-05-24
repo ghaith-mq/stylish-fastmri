@@ -16,6 +16,8 @@ def build_args():
     parser.add_argument('--device', type=int, default='cuda', choices=['cpu', 'cuda'], help='GPU or CPU')
     parser.add_argument('--load', type=str, default=None)
     parser.add_argument('--mode', type=str, choices=['train', 'val', 'test'], default='train')
+    parser.add_argument('--dataset-path', type=str, default=None)
+    parser.add_argument('--logs-dir', type=str, default=None)
     args = parser.parse_args()
     
     config = {}
@@ -25,7 +27,8 @@ def build_args():
         config.update(config_)
         
     for k, v in config.items():
-        setattr(args, k, v)
+        if not hasattr(args, k) or getattr(args, k) is None:
+            setattr(args, k, v)
         
     return args
 
@@ -34,7 +37,7 @@ def main():
     args = build_args()
     
     if args.trainer == 'default':
-        trainer = trainer_default.FastMRIDefaultTrainer(vars(args))
+        trainer = trainer_default.FastMRIDefaultTrainer(**vars(args))
     else:
         raise NotImplementedError()
         
