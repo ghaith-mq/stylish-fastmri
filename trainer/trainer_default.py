@@ -106,7 +106,7 @@ class FastMRIDefaultTrainer:
         # Discriminator
         if hasattr(self, 'discriminator'):
             steps.append(self._discriminator_train_step)
-            optimizers.append(self.get_optimizer(self.discriminator__optimizer_entity_kwargs))
+            optimizers.append(self.get_optimizer(self.discriminator, self.discriminator__optimizer_entity_kwargs))
             schedulers.append(None)
             if self.discriminator__scheduler_entity_kwargs is not None:
                 schedulers[1] = self.get_scheduler(optimizers[1], self.discriminator__scheduler_entity_kwargs)
