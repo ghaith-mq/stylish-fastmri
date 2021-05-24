@@ -348,7 +348,6 @@ class FastMRIDefaultTrainer:
         metric_to_log = {}
         
         for i, batch in pbar:
-            image, known_freq, known_image, mask = batch
             image, mask, known_freq, known_image, mean, std, fname = batch
             
             image = image.to(self.device)
