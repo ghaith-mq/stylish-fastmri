@@ -12,7 +12,7 @@ model__entity_kwargs:
     z_encoder_kwargs: {},
     w_encoder_kwargs: {}, 
     base_model_kwargs: { block_kwargs_list: [{
-      num_classes: 1,
+      num_classes: 2,
       min_channels: 32,
       max_channels: 512,
       num_down_blocks: 4,
