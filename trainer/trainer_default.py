@@ -353,7 +353,7 @@ class FastMRIDefaultTrainer:
         , writer=None
     ):
         
-        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
+        pbar = tqdm.tqdm(enumerate(dataloader), leave=True, desc=f'Epoch: {epoch}')
         dataloader_length = len(dataloader)
         loss_to_log = {}
         metric_to_log = {}
