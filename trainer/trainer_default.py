@@ -36,6 +36,8 @@ class FastMRIDefaultTrainer:
             out = obj
         elif isinstance(obj, T.Dict):
             out = EntityKwargs(**obj)
+        elif obj is None:
+            out = None
         else:
             logger.debug(str(obj))
             raise NotImplementedError()
@@ -83,7 +85,45 @@ class FastMRIDefaultTrainer:
             self.texture_proxy = self.get_model(self.to_entity_kwargs(texture_proxy__entity_kwargs)).to(self.device)
             
         self.criterion__entity2_kwargs_list = self.to_entity_kwargs(criterion__entity2_kwargs_list)
-        self.logs_dir = logs_dir        
+        self.logs_dir = logs_dir
+        
+    def train(self, epochs):
+        train_dataloader = self.get_train_dataloader()
+        val_dataloader = self.get_val_dataloader()
+        criterion = self.get_criterion(self.criterion__entity2_kwargs_list)
+        
+        # Base model with {z, w} encoders
+        steps = [self._generator_train_step]
+        optimizers = [self.get_optimizer(self.model, self.model__optimizer_entity_kwargs)]
+        schedulers = [None]
+        if self.model__scheduler_entity_kwargs is not None:
+            schedulers[0] = self.get_scheduler(optimizers[0], self.model__scheduler_entity_kwargs)
+            
+        # Discriminator
+        if hasattr(self, 'discriminator'):
+            steps.append(self._discriminator_train_step)
+            optimizers.append(self.get_optimizer(self.discriminator__optimizer_entity_kwargs))
+            schedulers.append(None)
+            if self.discriminator__scheduler_entity_kwargs is not None:
+                schedulers[1] = self.get_scheduler(optimizers[1], self.discriminator__scheduler_entity_kwargs)
+        
+        writer = self.get_writer()
+            
+        logger.info('Init has complete. Training starts...')
+        for e in range(epochs):
+            self.run(e, train_dataloader, criterion,
+                     steps, 
+                     optimizers,
+                     schedulers,
+                     'train_', checkpoint=True, writer=writer)
+            
+            self.run(e, val_dataloader, None,
+                     self._generator_val_step,
+                     [None],
+                     [None],
+                     'val_', checkpoint=False, writer=writer)
+            
+        logger.success('Training is complete!')
         
     def get_model(self, model_entity_kwargs: EntityKwargs) -> nn.Module:
         model = model_entity_kwargs.entity.lower()
@@ -380,41 +420,3 @@ class FastMRIDefaultTrainer:
                 checkpoint_name += f"_{metric_to_log['metric_ssim'] / dataloader_length:.4f}"
             
             torch.save(self.model.state_dict(), str(pb.Path(self.writer_path) / checkpoint_name))
-    
-    def train(self, epochs):
-        train_dataloader = self.get_train_dataloader()
-        val_dataloader = self.get_val_dataloader()
-        criterion = self.get_criterion(self.criterion__entity2_kwargs_list)
-        
-        # Base model with {z, w} encoders
-        steps = [self._generator_train_step]
-        optimizers = [self.get_optimizer(self.model, self.model__optimizer_entity_kwargs)]
-        schedulers = [None]
-        if self.scheduler_entity_kwargs is not None:
-            schedulers[0] = self.get_scheduler(optimizers[0], self.model__scheduler_entity_kwargs)
-            
-        # Discriminator
-        if hasattr(self, 'discriminator'):
-            steps.append(self._discriminator_train_step)
-            optimizers.append(self.get_optimizer())
-            schedulers.append(None)
-            if self.discriminator__scheduler_entity_kwargs is not None:
-                schedulers[1] = self.get_scheduler(optimizers[1], self.discriminator__scheduler_entity_kwargs)
-        
-        writer = self.get_writer()
-            
-        logger.info('Init has complete. Training starts...')
-        for e in range(epochs):
-            self.run(e, train_dataloader, criterion,
-                     steps, 
-                     optimizers,
-                     schedulers,
-                     'train_', checkpoint=True, writer=writer)
-            
-            self.run(e, val_dataloader, None,
-                     self._generator_val_step,
-                     [None],
-                     [None],
-                     'val_', checkpoint=False, writer=writer)
-            
-        logger.success('Training is complete!')
