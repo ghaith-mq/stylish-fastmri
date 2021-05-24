@@ -313,7 +313,7 @@ class UnetDataTransform:
         if target is not None:
             target = to_tensor(target)
             target = center_crop(target, crop_size)
-            target = normalize(target, mean, std, eps=1e-11)
+            target = normalize(target, mean, std, eps=1e-11).clamp(0, 1)
             target = target.unsqueeze(0)
             # target = target.clamp(-6, 6)
         else:
