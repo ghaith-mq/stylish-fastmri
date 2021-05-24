@@ -280,6 +280,7 @@ class FastMRIDefaultTrainer:
     def get_writer(self):
         current_time = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
         self.writer_path = str(pb.Path(self.logs_dir) / current_time)
+        logger.info(f'Experiment logs dir: {self.writer_path}')
         writer = SummaryWriter(self.writer_path)
         return writer
             
