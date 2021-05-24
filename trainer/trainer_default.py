@@ -289,6 +289,7 @@ class FastMRIDefaultTrainer:
         
         cache = {}
         
+        logger.debug(f'{rec_image.min()} - {rec_image.max()}, {known_image.min()} - {known_image.max()}')
         loss_rec = criterion.rec(rec_image, known_image)
         cache['loss_rec'] = loss_rec.item()
         
@@ -358,6 +359,7 @@ class FastMRIDefaultTrainer:
         loss_to_log = {}
         metric_to_log = {}
         
+        logger.info(f'{dataloader_length} iterations to do...')
         for i, batch in pbar:
             image, mask, known_freq, known_image, mean, std, fname = batch
             

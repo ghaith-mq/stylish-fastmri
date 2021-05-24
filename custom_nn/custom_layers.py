@@ -280,8 +280,8 @@ class MobileNetV2VAEncoder(nn.Module):
         self.features_spatial_squeezer = nn.AdaptiveAvgPool2d(1)
         self.dummy_compressor = nn.AvgPool1d(4)
         
-        self.mu = nn.Linear(320, out_channels)
-        self.log_var = nn.Linear(320, out_channels)
+        self.mu = spectral_norm(nn.Linear(320, out_channels))
+        self.log_var = spectral_norm(nn.Linear(320, out_channels))
 
     def forward(self, x):
         x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
@@ -325,7 +325,7 @@ class MobileNetV2Encoder(nn.Module):
                 param.requires_grad = False
         
         self.dummy_compressor = nn.AvgPool1d(4)
-        self.final = nn.Identity() if out_channels == 320 else nn.Linear(320, out_channels)
+        self.final = nn.Identity() if out_channels == 320 else spectral_norm(nn.Linear(320, out_channels))
 
     def forward(self, x):
         x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
