@@ -203,8 +203,6 @@ class StylishUNet(nn.Module):
         x = self.conv_out(x)
         x = F.interpolate(x, size=(h, w), mode='bilinear')
         logits = x
-
-        assert logits.shape == (inputs.shape[0], self.num_classes, inputs.shape[2], inputs.shape[3]), 'Wrong shape of the logits'
         
         return logits
 

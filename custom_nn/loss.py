@@ -31,5 +31,5 @@ class HingeGANLoss(nn.Module):
     
     
 class KLNormalDivergence(nn.Module):
-    def foward(self, mu, log_var):
+    def forward(self, mu, log_var):
         return -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
