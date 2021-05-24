@@ -317,7 +317,6 @@ class FastMRIDefaultTrainer:
         return loss, cache
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
-        b, _, h, w = image.shape
         # torch.manual_seed(42)  # Maybe not the most elegan way, as it may lead to repetitive noise
         # noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
         rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
@@ -354,12 +353,11 @@ class FastMRIDefaultTrainer:
         , writer=None
     ):
         
-        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
-        dataloader_length = 8 # len(dataloader)
+        dataloader_length = len(dataloader)
+        pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}', total=dataloader_length)
         loss_to_log = {}
         metric_to_log = {}
         
-        logger.info(f'{dataloader_length} iterations to do...\n')
         for i, batch in pbar:
             image, mask, known_freq, known_image, mean, std, fname = batch
             
@@ -403,7 +401,7 @@ class FastMRIDefaultTrainer:
                 for metric_key, metric_value in metric_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{metric_key}', metric_value, dataloader_length * epoch + i)
                     
-            if i == dataloader_length: break
+            # if i == dataloader_length: break
                     
                     
         pbar.close()
