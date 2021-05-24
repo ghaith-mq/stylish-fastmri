@@ -66,6 +66,10 @@ class FastMRIDefaultTrainer:
         , criterion__entity2_kwargs_list: T.List[T.Union[EntityKwargs, T.Dict]]=None
         
         , logs_dir: str='./logs'
+        
+        , train_dataset_cache_file="train_dataset_cache.pkl"
+        , val_dataset_cache_file="val_dataset_cache.pkl"
+        , test_dataset_cache_file="test_dataset_cache.pkl"
     
         , device='cuda:0'
         , **kwargs  # Dummy arguments
@@ -90,6 +94,10 @@ class FastMRIDefaultTrainer:
             
         self.criterion__entity2_kwargs_list = self.to_entity_kwargs(criterion__entity2_kwargs_list)
         self.logs_dir = logs_dir
+        
+        self.train_dataset_cache_file = train_dataset_cache_file
+        self.val_dataset_cache_file = val_dataset_cache_file
+        self.test_dataset_cache_file = test_dataset_cache_file
         
     def train(self, epochs):
         train_dataloader = self.get_train_dataloader()
@@ -171,6 +179,7 @@ class FastMRIDefaultTrainer:
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_train',
             use_dataset_cache=True,
+            dataset_cache_file=self.train_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
@@ -188,6 +197,7 @@ class FastMRIDefaultTrainer:
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_val',
             use_dataset_cache=True,
+            dataset_cache_file=self.val_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
@@ -205,6 +215,7 @@ class FastMRIDefaultTrainer:
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_test',
             use_dataset_cache=True,
+            dataset_cache_file=self.test_dataset_cache_file,
             transform=self.get_fastmri_data_transform(),
             challenge='singlecoil'
         )
@@ -349,8 +360,6 @@ class FastMRIDefaultTrainer:
         
         for i, batch in pbar:
             image, mask, known_freq, known_image, mean, std, fname = batch
-            
-            logger.debug(f'{image.shape}, {mask.shape}, {known_freq.shape}, {known_image.shape}, {mean.shape}, {std.shape}')
             
             image = image.to(self.device)
             known_freq = known_freq.to(self.device)

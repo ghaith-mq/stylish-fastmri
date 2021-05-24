@@ -18,6 +18,9 @@ def build_args():
     parser.add_argument('--mode', type=str, choices=['train', 'val', 'test'], default='train')
     parser.add_argument('--dataset-path', type=str, default=None)
     parser.add_argument('--logs-dir', type=str, default=None)
+    parser.add_argument('--train-dataset-cache-file', type=str, default=None)
+    parser.add_argument('--val-dataset-cache-file', type=str, default=None)
+    parser.add_argument('--test-dataset-cache-file', type=str, default=None)
     args = parser.parse_args()
     
     config = {}

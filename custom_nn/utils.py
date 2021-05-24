@@ -11,7 +11,7 @@ def to_two_channel_complex(data: torch.Tensor) -> torch.Tensor:
     """ Change data representation from one channel complex-valued to two channers real valued """
     real = data.real
     imag = data.imag
-    result = torch.empty((*data.shape, 2), dtype=torch.float32)
+    result = torch.empty((*data.shape, 2), dtype=torch.float32, device=data.device)
     result[..., 0] = real
     result[..., 1] = imag
     return result
