@@ -4,7 +4,7 @@ dataset_path: './singlecoil'
 logs_dir: './logs'
 
 epochs: 50
-batch_size: 32
+batch_size: 8
 
 model__entity_kwargs:
   entity: stylishfastmri
