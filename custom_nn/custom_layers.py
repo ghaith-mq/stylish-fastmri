@@ -284,6 +284,7 @@ class MobileNetV2VAEncoder(nn.Module):
         super().__init__()
         
         self.features = torch.hub.load('pytorch/vision:v0.9.0', 'mobilenet_v2', pretrained=True).features  # 1280
+        self.features_spatial_squeezer = nn.AdaptiveAvgPool2d(1)
         self.dummy_compressor = nn.AvgPool1d(4)
         
         self.mu = nn.Linear(320, out_channels)
@@ -292,7 +293,7 @@ class MobileNetV2VAEncoder(nn.Module):
     def forward(self, x):
         x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
         feats = self.features(x)
-        feats = feats.reshape(-1, 1, 1280)
+        feats = self.features_spatial_squeezer(feats).reshape(-1, 1, 1280)
         # Compress the features to make other parts lightweight
         feats = self.dummy_compressor(feats)
         feats = feats.reshape(-1, 320)
@@ -325,6 +326,7 @@ class MobileNetV2Encoder(nn.Module):
         super().__init__()
         
         self.features = torch.hub.load('pytorch/vision:v0.9.0', 'mobilenet_v2', pretrained=True).features  # 1280
+        self.features_spatial_squeezer = nn.AdaptiveAvgPool2d(1)
         if freeze:                
             for param in self.features.parameters():
                 param.requires_grad = False
@@ -335,7 +337,7 @@ class MobileNetV2Encoder(nn.Module):
     def forward(self, x):
         x = x.repeat(1, 3, 1, 1)  # Add channels to make input compatible with MobileNetV2 architecture
         feats = self.features(x)
-        feats = feats.reshape(-1, 1, 1280)
+        feats = self.features_spatial_squeezer(feats).reshape(-1, 1, 1280)
         # Compress the features to make other parts lightweight
         feats = self.dummy_compressor(feats)
         feats = feats.reshape(-1, 320)
