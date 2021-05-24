@@ -172,13 +172,13 @@ class StylishUNet(nn.Module):
             x = ed(x)
 
         for i, (d, du) in enumerate(zip(self.decoder_blocks, self.decoder_up_blocks)):
-            if i < 0:
+            if i == 0:
                 # Bottleneck
                 x = d(x)
             else:
                 x = torch.cat([
                     x
-                    , self.soft_thresholders[i](down_features[i])
+                    , self.soft_thresholders[i](down_features[i - 1])
                 ], dim=1)
                 x = d(x)
                 
@@ -191,7 +191,7 @@ class StylishUNet(nn.Module):
 
         x = torch.cat([
             x
-            , self.soft_thresholders[0](down_features[0])
+            , self.soft_thresholders[0](down_features[-1])
         ], dim=1)
         x = self.final_block(x)
         
