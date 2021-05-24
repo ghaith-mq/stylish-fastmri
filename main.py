@@ -13,7 +13,7 @@ from trainer import trainer_default
 def build_args():
     parser = ap.ArgumentParser(description='Main entry to train/evaluate models.')
     parser.add_argument('config', nargs='+', type=str)
-    parser.add_argument('--device', type=int, default='cuda', choices=['cpu', 'cuda'], help='GPU or CPU')
+    parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='GPU or CPU')
     parser.add_argument('--load', type=str, default=None)
     parser.add_argument('--mode', type=str, choices=['train', 'val', 'test'], default='train')
     parser.add_argument('--dataset-path', type=str, default=None)
