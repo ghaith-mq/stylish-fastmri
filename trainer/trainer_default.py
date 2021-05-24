@@ -426,8 +426,8 @@ class FastMRIDefaultTrainer:
             for loss_key, loss_value in loss_to_log.items():
                 writer.add_scalar(f'{log_prefix}epoch_{loss_key}', loss_value / dataloader_length, epoch)
             if 'reconstruction' in cache.keys():
-                image = image[:2] * std[:2] + mean[:2]
-                rec = cache['reconstruction'][:2] * std[:2] + mean[:2]
+                image = image[:2] * std[:2, None, None, None] + mean[:2, None, None, None]
+                rec = cache['reconstruction'][:2] * std[:2, None, None, None] + mean[:2, None, None, None]
                 tensor_to_log = torchvision.utils.make_grid(torch.cat([image, rec]), nrow=2)
                 writer.add_image(f'{log_prefix}epoch_reconstruction', tensor_to_log, epoch)
                 
