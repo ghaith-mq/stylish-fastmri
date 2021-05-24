@@ -315,8 +315,8 @@ class FastMRIDefaultTrainer:
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
         b, _, h, w = image.shape
         torch.manual_seed(42)
-        noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
-        rec_image, _, _, _ = self.model(image, known_freq, mask, noise=noise)
+        # noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
+        rec_image, _, _, _ = self.model(image, known_freq, mask)
         rec_image = rec_image.detach()
         
         cache = {}
