@@ -63,7 +63,7 @@ class NoiseApplier(nn.Module):
             # Explicit noise in the argument is needed for proper validation
             noise = torch.randn((b, 1, h, w), dtype=dtype, device=device)
             
-        logger.debug(f'{x.shape}, {noise.shape}, {self.scale.shape}')
+        # logger.debug(f'{x.shape}, {noise.shape}, {self.scale.shape}')
         
         return x + self.scale.view(1, -1, 1, 1) * noise
         
@@ -133,10 +133,10 @@ class StylishUNet(nn.Module):
             self.decoder_up_blocks.insert(0, decoder_up_block)
             
             if use_noise_injection:
-                self.encoder_noise_applier_blocks.insert(0, NoiseApplier(in_channels))
+                self.encoder_noise_applier_blocks.append(NoiseApplier(in_channels))
                 self.decoder_noise_applier_blocks.insert(0, NoiseApplier(out_channels))
             if use_texture_injection:
-                self.encoder_adain_blocks.insert(0, AdaIN(texture_dim, in_channels))
+                self.encoder_adain_blocks.append(AdaIN(texture_dim, in_channels))
                 self.decoder_adain_blocks.insert(0, AdaIN(texture_dim, out_channels))
 
         self.final_block = self._construct_block(
@@ -150,7 +150,7 @@ class StylishUNet(nn.Module):
         if use_texture_injection:
             self.decoder_adain_blocks.append(AdaIN(texture_dim, min_channels))
 
-        self.conv_out = nn.Conv2d(min_channels, num_classes, kernel_size=1)
+        self.conv_out = nn.Conv2d(min_channels, num_classes // 2, kernel_size=1)
 
     def forward(self, inputs, textures=None, noise=None):
         *_, h, w = inputs.shape
