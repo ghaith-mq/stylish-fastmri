@@ -354,14 +354,12 @@ class FastMRIDefaultTrainer:
     ):
         
         pbar = tqdm.tqdm(enumerate(dataloader), leave=False, desc=f'Epoch: {epoch}')
-        dataloader_length = len(dataloader)
+        dataloader_length = 8 # len(dataloader)
         loss_to_log = {}
         metric_to_log = {}
         
         logger.info(f'\n{dataloader_length} iterations to do...')
         for i, batch in pbar:
-            
-            if i == 8: break
             image, mask, known_freq, known_image, mean, std, fname = batch
             
             image = image.to(self.device)
@@ -404,6 +402,8 @@ class FastMRIDefaultTrainer:
                 for metric_key, metric_value in metric_atoms_to_log.items():
                     writer.add_scalar(f'{log_prefix}{metric_key}', metric_value, dataloader_length * epoch + i)
                     
+            if i == dataloader_length: break
+                    
                     
         pbar.close()
         
@@ -429,8 +429,10 @@ class FastMRIDefaultTrainer:
             for loss_key, loss_value in loss_to_log.items():
                 writer.add_scalar(f'{log_prefix}epoch_{loss_key}', loss_value / dataloader_length, epoch)
             if 'reconstruction' in cache.keys():
-                image = image[:2] * std[:2, None, None, None] + mean[:2, None, None, None]
-                rec = cache['reconstruction'][:2] * std[:2, None, None, None] + mean[:2, None, None, None]
+                # image = image[:2] * std[:2, None, None, None] + mean[:2, None, None, None]
+                image = image[:2]
+                # rec = cache['reconstruction'][:2] * std[:2, None, None, None] + mean[:2, None, None, None]
+                rec = cache['reconstruction'][:2]
                 tensor_to_log = torchvision.utils.make_grid(torch.cat([image, rec]), nrow=2)
                 writer.add_image(f'{log_prefix}epoch_reconstruction', tensor_to_log, epoch)
                 
@@ -440,5 +442,6 @@ class FastMRIDefaultTrainer:
                 checkpoint_name += f"_{metric_to_log['metric_psnr'] / dataloader_length:.4f}"
             if 'metric_ssim' in metric_to_log.keys():
                 checkpoint_name += f"_{metric_to_log['metric_ssim'] / dataloader_length:.4f}"
+            checkpoint_name += '.pt'
             
             torch.save(self.model.state_dict(), str(pb.Path(self.writer_path) / checkpoint_name))
