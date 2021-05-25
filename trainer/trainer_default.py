@@ -20,6 +20,7 @@ sys.path.append(str(ROOT_PATH))
 import custom_nn.utils
 import custom_nn.custom_layers as custom_layers
 from custom_nn.utils import EntityKwargs
+import custom_nn.base_model as base_model_module
 import custom_nn.model as model_module
 import custom_nn.discriminator as discriminator_module
 import custom_nn.loss as loss_module
@@ -143,6 +144,8 @@ class FastMRIDefaultTrainer:
         
         if model == 'stylishfastmri':
             model = model_module.StylishFastMRI(**kwargs)
+        elif model == 'basestylishfastmri':
+            model = base_model_module.BaseStylishFastMRI(**kwargs)
         elif model == 'discriminator':
             model = discriminator_module.Discriminator(**kwargs)
         elif model == 'mobilenet_v2_encoder':

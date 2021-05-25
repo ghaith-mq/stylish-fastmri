@@ -6,7 +6,7 @@ import yaml
 
 ROOT_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(ROOT_PATH))
-from trainer import trainer_default
+from trainer import trainer_default, trainer_default_base
 
 
 
@@ -41,6 +41,8 @@ def main():
     
     if args.trainer == 'default':
         trainer = trainer_default.FastMRIDefaultTrainer(**vars(args))
+    elif args.trainer == 'default_base':
+        trainer = trainer_default_base.FastMRIDefaultBaseTrainer(**vars(args))
     else:
         raise NotImplementedError()
         
@@ -48,6 +50,6 @@ def main():
         trainer.train(args.epochs)
     else:
         raise NotImplementedError()
-    
+
 if __name__ == '__main__':
     main()
