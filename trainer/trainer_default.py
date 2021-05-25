@@ -3,9 +3,11 @@ import pathlib as pb
 import argparse as ap
 import typing as T
 import datetime
+import random
 
 import tqdm
 from loguru import logger
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -192,7 +194,8 @@ class FastMRIDefaultTrainer:
             dataset=dataset,
             batch_size=self.batch_size,
             num_workers=2,
-            shuffle=True
+            shuffle=True,
+            worker_init_fn=self.seed_worker
         )
         
         return dataloader
@@ -211,7 +214,8 @@ class FastMRIDefaultTrainer:
             dataset=dataset,
             batch_size=self.batch_size,
             num_workers=2,
-            shuffle=False
+            shuffle=False,
+            worker_init_fn=self.seed_worker
         )
         
         return dataloader
@@ -230,10 +234,16 @@ class FastMRIDefaultTrainer:
             dataset=dataset,
             batch_size=self.batch_size,
             num_workers=2,
-            shuffle=False
+            shuffle=False,
+            worker_init_fn=self.seed_worker
         )
         
         return dataloader
+    
+    def seed_worker(self, worker_id):
+        worker_seed = torch.initial_seed() % 2**32
+        np.random.seed(worker_seed)
+        random.seed(worker_seed)
     
     def get_optimizer(self, model, optimizer_entity_kwargs):
         entity = optimizer_entity_kwargs.entity.lower()

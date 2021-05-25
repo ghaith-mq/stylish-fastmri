@@ -1,12 +1,22 @@
 import sys
 import pathlib as pb
 import argparse as ap
+import random
 
 import yaml
+import torch
+import numpy as np
 
 ROOT_PATH = pb.Path(__file__).resolve().parent
 sys.path.append(str(ROOT_PATH))
 from trainer import trainer_default, trainer_default_base
+
+
+random.seed(0)
+np.random.seed(0)
+torch.use_deterministic_algorithms(True)
+torch.manual_seed(0)
+
 
 
 

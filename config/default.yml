@@ -10,7 +10,7 @@ model__entity_kwargs:
   entity: stylishfastmri
   kwargs: {
     z_encoder_kwargs: {},
-    w_encoder_kwargs: {}, 
+    w_encoder_kwargs: {num_inter_layers: 4}, 
     base_model_kwargs: { block_kwargs_list: [{
       num_classes: 2,
       min_channels: 32,
@@ -19,7 +19,16 @@ model__entity_kwargs:
       use_texture_injection: True,
       texture_dim: 320,
       use_noise_injection: True
-    }]}
+    },
+    {
+      num_classes: 2,
+      min_channels: 32,
+      max_channels: 128,
+      num_down_blocks: 2,
+      use_texture_injection: True,
+      use_noise_injection: True
+    }
+    ]}
   }
 model__optimizer_entity_kwargs:
   entity: 'adam'
