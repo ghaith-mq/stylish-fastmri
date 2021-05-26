@@ -160,7 +160,7 @@ class FastMRIDefaultTrainer:
             raise NotImplementedError()
         
         if load is not None:
-            model.load_state_dict(load)
+            model.load_state_dict(torch.load(load))
             logger.info(f'Loaded model from: {load}')
             
         return model
