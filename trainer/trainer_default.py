@@ -59,10 +59,12 @@ class FastMRIDefaultTrainer:
         , model__entity_kwargs: T.Union[EntityKwargs, T.Dict]
         , model__optimizer_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         , model__scheduler_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
+        , model__load: str=None
 
         , discriminator__entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         , discriminator__optimizer_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         , discriminator__scheduler_entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
+        , discriminator__load: str=None
         
         , texture_proxy__entity_kwargs: T.Union[EntityKwargs, T.Dict]=None
         
@@ -83,12 +85,12 @@ class FastMRIDefaultTrainer:
         self.batch_size = batch_size
         
         # Base model
-        self.model = self.get_model(self.to_entity_kwargs(model__entity_kwargs)).to(self.device)
+        self.model = self.get_model(self.to_entity_kwargs(model__entity_kwargs), model__load).to(self.device)
         self.model__optimizer_entity_kwargs = self.to_entity_kwargs(model__optimizer_entity_kwargs)
         self.model__scheduler_entity_kwargs = self.to_entity_kwargs(model__scheduler_entity_kwargs)
         
         if discriminator__entity_kwargs is not None:
-            self.discriminator = self.get_model(self.to_entity_kwargs(discriminator__entity_kwargs)).to(self.device)
+            self.discriminator = self.get_model(self.to_entity_kwargs(discriminator__entity_kwargs), discriminator__load).to(self.device)
             self.discriminator__optimizer_entity_kwargs = self.to_entity_kwargs(discriminator__optimizer_entity_kwargs)
             self.discriminator__scheduler_entity_kwargs = self.to_entity_kwargs(discriminator__scheduler_entity_kwargs)
             
@@ -140,7 +142,7 @@ class FastMRIDefaultTrainer:
             
         logger.success('Training is complete!\n')
         
-    def get_model(self, model_entity_kwargs: EntityKwargs) -> nn.Module:
+    def get_model(self, model_entity_kwargs: EntityKwargs, load: str=None) -> nn.Module:
         model = model_entity_kwargs.entity.lower()
         kwargs = model_entity_kwargs.kwargs
         
@@ -156,6 +158,10 @@ class FastMRIDefaultTrainer:
             model = custom_layers.MobileNetV2VAEncoder(**kwargs)
         else: 
             raise NotImplementedError()
+        
+        if load is not None:
+            model.load_state_dict(load)
+            logger.info(f'Loaded model from: {load}')
             
         return model
     
@@ -301,6 +307,7 @@ class FastMRIDefaultTrainer:
         return writer
             
     def _generator_train_step(self, image, known_freq, known_image, mask, criterion, **kwargs):
+        self.model.train()
         rec_image, z_mu, z_log_var, texture = self.model(image, known_freq, mask)
         gt_texture = self.texture_proxy(known_image)
         
@@ -330,6 +337,7 @@ class FastMRIDefaultTrainer:
         return loss, cache
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
+        self.model.eval()
         # torch.manual_seed(42)  # Maybe not the most elegan way, as it may lead to repetitive noise
         # noise = torch.randn((b, 1, h, w), dtype=image.dtype, device=self.device)  # Explicit noise to make noise injections reproducible
         rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
