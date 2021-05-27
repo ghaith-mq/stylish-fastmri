@@ -183,7 +183,7 @@ class FastMRIDefaultTrainer:
             skimage.io.imsave(save_to_name + '_input.png', image.squeeze().cpu().numpy())
             skimage.io.imsave(save_to_name + '.png', rec_image.squeeze().cpu().numpy())
             skimage.io.imsave(save_to_name + '_gt.png', known_image.squeeze().cpu().numpy())
-            logger.info(f'{i}/{dataloader_length}: {pb.Path(fname).stem}: PSNR = {metric_psnr:.4f}, SSIM = {metric_ssim:.4f}\n')
+            logger.info(f'{i}/{dataloader_length}: {pb.Path(fname[0]).stem}: PSNR = {metric_psnr:.4f}, SSIM = {metric_ssim:.4f}\n')
             
             if i == num_examples:
                 break
