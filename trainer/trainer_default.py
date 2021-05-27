@@ -153,7 +153,7 @@ class FastMRIDefaultTrainer:
     ):
         
         self.model.eval()
-        dataloader = self.get_val_dataloader(center_fractions, accelerations)
+        dataloader = self.get_val_dataloader(center_fractions, accelerations, batch_size=1)
         dataloader_length = len(dataloader)
         os.makedirs(out_dir, exist_ok=True)
         
@@ -176,9 +176,9 @@ class FastMRIDefaultTrainer:
             metric_psnr = piq.psnr(rec_image, known_image, data_range=1.).item()
             
             save_to_name = pb.Path(out_dir) / pb.Path(fname).stem
-            skimage.io.imsave(save_to_name + '_input.png', image.numpy())
-            skimage.io.imsave(save_to_name + '.png', rec_image.numpy())
-            skimage.io.imsave(save_to_name + '_gt.png', known_image.numpy())
+            skimage.io.imsave(save_to_name + '_input.png', image.squeeze().numpy())
+            skimage.io.imsave(save_to_name + '.png', rec_image.squeeze().numpy())
+            skimage.io.imsave(save_to_name + '_gt.png', known_image.squeeze().numpy())
             logger.info(f'{i}/{dataloader_length}: {pb.Path(fname).stem}: PSNR = {metric_psnr:.4f}, SSIM = {metric_ssim:.4f}\n')
             
             if i == num_examples:
@@ -255,7 +255,7 @@ class FastMRIDefaultTrainer:
         
         return dataloader
     
-    def get_val_dataloader(self, *args, **kwargs):
+    def get_val_dataloader(self, *args, batch_size=None, **kwargs):
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_val',
             use_dataset_cache=True,
@@ -267,7 +267,7 @@ class FastMRIDefaultTrainer:
 
         dataloader = torch.utils.data.DataLoader(
             dataset=dataset,
-            batch_size=self.batch_size,
+            batch_size=batch_size if batch_size is not None else self.batch_size,
             num_workers=2,
             shuffle=False,
             worker_init_fn=self.seed_worker
