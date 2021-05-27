@@ -167,7 +167,11 @@ class FastMRIDefaultTrainer:
             mean = mean.to(self.device)
             std = std.to(self.device)
             
-            rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
+            try:
+                rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
+            except ValueError:
+                rec_image = self.model(image, known_freq, mask, is_deterministic=True)
+                
             rec_image = rec_image.detach()
             image = image.detach()
             known_image = known_image.detach()

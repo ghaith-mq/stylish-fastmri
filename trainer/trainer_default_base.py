@@ -42,7 +42,7 @@ class FastMRIDefaultBaseTrainer(trainer_default.FastMRIDefaultTrainer):
         return loss, cache
     
     def _generator_val_step(self, image, known_freq, known_image, mask, **kwargs):
-        rec_image= self.model(image, known_freq, mask, is_deterministic=True)
+        rec_image = self.model(image, known_freq, mask, is_deterministic=True)
         rec_image = rec_image.detach()
         
         cache = {}
