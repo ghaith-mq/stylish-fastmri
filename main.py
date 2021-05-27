@@ -33,8 +33,8 @@ def build_args():
     parser.add_argument('--test-dataset-cache-file', type=str, default=None)
 
     # Predict
-    parser.add_argument('--center-fractions', type=str, default=None)
-    parser.add_argument('--accelerations', type=str, default=None)
+    parser.add_argument('--center-fractions', nargs='+', type=str, default=None)
+    parser.add_argument('--accelerations', nargs='+', type=str, default=None)
     parser.add_argument('--num-examples', type=str, default=None)
     parser.add_argument('--out-dir', type=str, default=None)
 
