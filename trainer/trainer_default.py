@@ -8,6 +8,8 @@ import random
 import tqdm
 from loguru import logger
 import numpy as np
+import skimage
+import piq
 
 import torch
 import torch.nn as nn
@@ -15,7 +17,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
-import piq
 
 ROOT_PATH = pb.Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_PATH))
@@ -142,6 +143,47 @@ class FastMRIDefaultTrainer:
             
         logger.success('Training is complete!\n')
         
+    def predict(
+        self
+        , center_fractions
+        , accelerations
+        , num_examples
+        , out_dir
+    ):
+        
+        self.model.eval()
+        dataloader = self.get_val_dataloader(center_fractions, accelerations)
+        dataloader_length = len(dataloader)
+        
+        for i, batch in enumerate(dataloader, 1):
+            image, mask, known_freq, known_image, mean, std, fname = batch
+            
+            image = image.to(self.device)
+            known_freq = known_freq.to(self.device)
+            known_image = known_image.to(self.device)
+            mask = mask.to(self.device)
+            mean = mean.to(self.device)
+            std = std.to(self.device)
+            
+            rec_image, _, _, _ = self.model(image, known_freq, mask, is_deterministic=True)
+            rec_image = rec_image.detach()
+            image = image.detach()
+            known_image = known_image.detach()
+            
+            metric_ssim = piq.ssim(rec_image, known_image, data_range=1.).item()
+            metric_psnr = piq.psnr(rec_image, known_image, data_range=1.).item()
+            
+            save_to_name = pb.Path(out_dir) / pb.Path(fname).stem
+            skimage.io.imsave(save_to_name + '_input.png', image.numpy())
+            skimage.io.imsave(save_to_name + '.png', rec_image.numpy())
+            skimage.io.imsave(save_to_name + '_gt.png', known_image.numpy())
+            logger.info(f'{i}/{dataloader_length}: {pb.Path(fname).stem}: PSNR = {metric_psnr:.4f}, SSIM = {metric_ssim:.4f}\n')
+            
+            if i == num_examples:
+                break
+            
+        logger.success('Prediction is complete!\n')
+        
     def get_model(self, model_entity_kwargs: EntityKwargs, load: str=None) -> nn.Module:
         model = model_entity_kwargs.entity.lower()
         kwargs = model_entity_kwargs.kwargs
@@ -165,10 +207,15 @@ class FastMRIDefaultTrainer:
             
         return model
     
-    def get_fastmri_data_transform(self):
+    def get_fastmri_data_transform(
+        self
+        , center_fractions=[0.08, 0.04, 0.02, 0.01]
+        , accelerations=[4, 8, 16, 32]
+    ):
+        
         mask_func = subsample.RandomMaskFunc(
-            center_fractions=[0.08, 0.04, 0.02, 0.01],
-            accelerations=[4, 8, 16, 32]
+            center_fractions=center_fractions,
+            accelerations=accelerations
         )
         unet_data_transform = transforms.UnetDataTransform(which_challenge="singlecoil", mask_func=mask_func)
         
@@ -206,12 +253,12 @@ class FastMRIDefaultTrainer:
         
         return dataloader
     
-    def get_val_dataloader(self):
+    def get_val_dataloader(self, *args, **kwargs):
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_val',
             use_dataset_cache=True,
             dataset_cache_file=self.val_dataset_cache_file,
-            transform=self.get_fastmri_data_transform(),
+            transform=self.get_fastmri_data_transform(*args, **kwargs),
             sample_rate=0.2,
             challenge='singlecoil'
         )
@@ -225,7 +272,7 @@ class FastMRIDefaultTrainer:
         )
         
         return dataloader
-    
+            
     def get_test_dataloader(self):
         dataset = mri_data.SliceDataset(
             root=pb.Path(self.dataset_path) / 'singlecoil_test',

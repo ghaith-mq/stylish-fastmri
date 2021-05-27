@@ -25,12 +25,19 @@ def build_args():
     parser.add_argument('config', nargs='+', type=str)
     parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='GPU or CPU')
     parser.add_argument('--model--load', type=str, default=None)
-    parser.add_argument('--mode', type=str, choices=['train', 'val', 'test'], default='train')
+    parser.add_argument('--mode', type=str, choices=['train', 'val', 'test', 'predict'], default='train')
     parser.add_argument('--dataset-path', type=str, default=None)
     parser.add_argument('--logs-dir', type=str, default=None)
     parser.add_argument('--train-dataset-cache-file', type=str, default=None)
     parser.add_argument('--val-dataset-cache-file', type=str, default=None)
     parser.add_argument('--test-dataset-cache-file', type=str, default=None)
+
+    # Predict
+    parser.add_argument('--center-fractions', type=str, default=None)
+    parser.add_argument('--accelerations', type=str, default=None)
+    parser.add_argument('--num-examples', type=str, default=None)
+    parser.add_argument('--out-dir', type=str, default=None)
+
     args = parser.parse_args()
     
     config = {}
@@ -58,6 +65,13 @@ def main():
         
     if args.mode == 'train':
         trainer.train(args.epochs)
+    elif args.mode == 'predict':
+        trainer.predict(
+            args.center_fractions
+            , args.accelerations
+            , args.num_examples
+            , args.out_dir
+        )
     else:
         raise NotImplementedError()
 
