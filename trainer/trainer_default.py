@@ -180,9 +180,9 @@ class FastMRIDefaultTrainer:
             metric_psnr = piq.psnr(rec_image, known_image, data_range=1.).item()
             
             save_to_name = str(pb.Path(out_dir) / pb.Path(fname[0]).stem)
-            skimage.io.imsave(save_to_name + '_input.png', image.squeeze().numpy())
-            skimage.io.imsave(save_to_name + '.png', rec_image.squeeze().numpy())
-            skimage.io.imsave(save_to_name + '_gt.png', known_image.squeeze().numpy())
+            skimage.io.imsave(save_to_name + '_input.png', image.squeeze().cpu().numpy())
+            skimage.io.imsave(save_to_name + '.png', rec_image.squeeze().cpu().numpy())
+            skimage.io.imsave(save_to_name + '_gt.png', known_image.squeeze().cpu().numpy())
             logger.info(f'{i}/{dataloader_length}: {pb.Path(fname).stem}: PSNR = {metric_psnr:.4f}, SSIM = {metric_ssim:.4f}\n')
             
             if i == num_examples:
