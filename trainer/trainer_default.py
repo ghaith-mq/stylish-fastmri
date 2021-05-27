@@ -1,3 +1,4 @@
+import os
 import sys
 import pathlib as pb
 import argparse as ap
@@ -154,6 +155,7 @@ class FastMRIDefaultTrainer:
         self.model.eval()
         dataloader = self.get_val_dataloader(center_fractions, accelerations)
         dataloader_length = len(dataloader)
+        os.makedirs(out_dir, exist_ok=True)
         
         for i, batch in enumerate(dataloader, 1):
             image, mask, known_freq, known_image, mean, std, fname = batch
