@@ -9,7 +9,7 @@ import random
 import tqdm
 from loguru import logger
 import numpy as np
-import skimage
+import skimage.io
 import piq
 
 import torch
